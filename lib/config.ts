@@ -6,14 +6,28 @@ export interface BaseBuilderConfig {
   allowedAddresses: string[];
 }
 
+export interface ContractConfig {
+  address: string;
+  network: string;
+  chainId: number;
+  explorerUrl: string;
+}
+
 export interface AppConfig {
   baseBuilder: BaseBuilderConfig;
+  contract: ContractConfig;
 }
 
 // Hardcoded configuration
 const config: AppConfig = {
   baseBuilder: {
     allowedAddresses: ["0xA67323BE0685019F6B7D2dF308E17e3C00958b05"]
+  },
+  contract: {
+    address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "",
+    network: "baseSepolia",
+    chainId: 84532,
+    explorerUrl: "https://sepolia.basescan.org"
   }
 };
 
