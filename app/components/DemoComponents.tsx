@@ -16,6 +16,7 @@ import {
   TransactionStatus,
 } from "@coinbase/onchainkit/transaction";
 import { useNotification } from "@coinbase/onchainkit/minikit";
+import useMarketEvent from "../hooks/useMarketEvent";
 
 type ButtonProps = {
   children: ReactNode;
@@ -78,7 +79,7 @@ type CardProps = {
   onClick?: () => void;
 }
 
-function Card({
+export function Card({
   title,
   children,
   className = "",
@@ -118,35 +119,41 @@ type FeaturesProps = {
 export function Features({ setActiveTab }: FeaturesProps) {
   return (
     <div className="space-y-6 animate-fade-in">
-      <Card title="Key Features">
+      <Card title="Predict-a-Frame Features">
         <ul className="space-y-3 mb-4">
           <li className="flex items-start">
             <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
             <span className="text-[var(--app-foreground-muted)]">
-              Minimalistic and beautiful UI design
+              Decentralized prediction markets on Base network
             </span>
           </li>
           <li className="flex items-start">
             <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
             <span className="text-[var(--app-foreground-muted)]">
-              Responsive layout for all devices
+              OnchainKit wallet integration for seamless betting
             </span>
           </li>
           <li className="flex items-start">
             <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
             <span className="text-[var(--app-foreground-muted)]">
-              Dark mode support
+              Proof-of-Foresight NFT rewards for accurate predictions
             </span>
           </li>
           <li className="flex items-start">
             <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
             <span className="text-[var(--app-foreground-muted)]">
-              OnchainKit integration
+              Mobile-responsive design optimized for MiniKit
+            </span>
+          </li>
+          <li className="flex items-start">
+            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
+            <span className="text-[var(--app-foreground-muted)]">
+              Real-time market statistics and odds
             </span>
           </li>
         </ul>
         <Button variant="outline" onClick={() => setActiveTab("home")}>
-          Back to Home
+          Start Predicting
         </Button>
       </Card>
     </div>
@@ -160,21 +167,19 @@ type HomeProps = {
 export function Home({ setActiveTab }: HomeProps) {
   return (
     <div className="space-y-6 animate-fade-in">
-      <Card title="My First Mini App">
+      <Card title="Predict-a-Frame Market">
         <p className="text-[var(--app-foreground-muted)] mb-4">
-          This is a minimalistic Mini App built with OnchainKit components.
+          Welcome to the decentralized prediction market! Make accurate predictions and earn rewards on Base network.
         </p>
         <Button
           onClick={() => setActiveTab("features")}
           icon={<Icon name="arrow-right" size="sm" />}
         >
-          Explore Features
+          Learn More
         </Button>
       </Card>
 
-      <TodoList />
-
-      <TransactionCard />
+      <PredictionMarket />
     </div>
   );
 }
@@ -279,167 +284,204 @@ export function Icon({ name, size = "md", className = "" }: IconProps) {
   );
 }
 
-type Todo = {
-  id: number;
-  text: string;
-  completed: boolean;
-}
-
-function TodoList() {
-  const [todos, setTodos] = useState<Todo[]>([
-    { id: 1, text: "Learn about MiniKit", completed: false },
-    { id: 2, text: "Build a Mini App", completed: true },
-    { id: 3, text: "Deploy to Base and go viral", completed: false },
-  ]);
-  const [newTodo, setNewTodo] = useState("");
-
-  const addTodo = () => {
-    if (newTodo.trim() === "") return;
-
-    const newId =
-      todos.length > 0 ? Math.max(...todos.map((t) => t.id)) + 1 : 1;
-    setTodos([...todos, { id: newId, text: newTodo, completed: false }]);
-    setNewTodo("");
-  };
-
-  const toggleTodo = (id: number) => {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
-      ),
-    );
-  };
-
-  const deleteTodo = (id: number) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      addTodo();
-    }
-  };
-
-  return (
-    <Card title="Get started">
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <input
-            type="text"
-            value={newTodo}
-            onChange={(e) => setNewTodo(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Add a new task..."
-            className="flex-1 px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)] placeholder-[var(--app-foreground-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
-          />
-          <Button
-            variant="primary"
-            size="md"
-            onClick={addTodo}
-            icon={<Icon name="plus" size="sm" />}
-          >
-            Add
-          </Button>
-        </div>
-
-        <ul className="space-y-2">
-          {todos.map((todo) => (
-            <li key={todo.id} className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  id={`todo-${todo.id}`}
-                  onClick={() => toggleTodo(todo.id)}
-                  className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                    todo.completed
-                      ? "bg-[var(--app-accent)] border-[var(--app-accent)]"
-                      : "border-[var(--app-foreground-muted)] bg-transparent"
-                  }`}
-                >
-                  {todo.completed && (
-                    <Icon
-                      name="check"
-                      size="sm"
-                      className="text-[var(--app-background)]"
-                    />
-                  )}
-                </button>
-                <label
-                  htmlFor={`todo-${todo.id}`}
-                  className={`text-[var(--app-foreground-muted)] cursor-pointer ${todo.completed ? "line-through opacity-70" : ""}`}
-                >
-                  {todo.text}
-                </label>
-              </div>
-              <button
-                type="button"
-                onClick={() => deleteTodo(todo.id)}
-                className="text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)]"
-              >
-                ×
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Card>
-  );
-}
 
 
-function TransactionCard() {
+
+// Prediction Market Types
+type PredictionOption = {
+  id: string;
+  label: string;
+  odds: number;
+  betAmount: number;
+};
+
+type PredictionEvent = {
+  id: string;
+  question: string;
+  description: string;
+  options: PredictionOption[];
+  totalPot: number;
+  totalBets: number;
+  endTime: string;
+  category: string;
+};
+
+export function PredictionMarket() {
   const { address } = useAccount();
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [betAmount, setBetAmount] = useState<number>(1); // Default 1 USDC
+  
+  // Dynamic market event data from CoinGecko API
+  const event = useMarketEvent();
 
-  // Example transaction call - sending 0 ETH to self
-  const calls = useMemo(() => address
-    ? [
-        {
-          to: address,
-          data: "0x" as `0x${string}`,
-          value: BigInt(0),
-        },
-      ]
-    : [], [address]);
+  // Convert dynamic event to prediction format
+  const predictionEvent: PredictionEvent | null = event ? {
+    id: "dynamic-event",
+    question: event.question,
+    description: event.description,
+    options: [
+      { id: "yes", label: "Yes (Higher)", odds: 1.8, betAmount: 0 },
+      { id: "no", label: "No (Lower)", odds: 2.1, betAmount: 0 }
+    ],
+    totalPot: parseFloat(event.totalPot),
+    totalBets: event.totalBets,
+    endTime: "2024-01-26T17:00:00Z",
+    category: event.category
+  } : null;
+
+  // Transaction calls for betting with USDC
+  const calls = useMemo(() => {
+    if (!address || !selectedOption) return [];
+    
+    // USDC contract address on Base Sepolia (testnet)
+    const USDC_CONTRACT = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as `0x${string}`;
+    
+    // Simulate betting by transferring USDC to self (representing pool deposit)
+    return [
+      {
+        to: USDC_CONTRACT,
+        data: `0xa9059cbb${address.slice(2).padStart(64, '0')}${BigInt(Math.floor(betAmount * 1e6)).toString(16).padStart(64, '0')}` as `0x${string}`, // transfer(address,uint256)
+        value: BigInt(0), // No ETH value for ERC20 transfer
+      },
+    ];
+  }, [address, selectedOption, betAmount]);
 
   const sendNotification = useNotification();
 
   const handleSuccess = useCallback(async (response: TransactionResponse) => {
     const transactionHash = response.transactionReceipts[0].transactionHash;
 
-    console.log(`Transaction successful: ${transactionHash}`);
+    console.log(`Bet placed successfully: ${transactionHash}`);
 
     await sendNotification({
-      title: "Congratulations!",
-      body: `You sent your a transaction, ${transactionHash}!`,
+      title: "Bet Placed! 🎯",
+      body: `Your prediction has been recorded. Transaction: ${transactionHash.slice(0, 10)}...`,
     });
   }, [sendNotification]);
 
-  return (
-    <Card title="Make Your First Transaction">
-      <div className="space-y-4">
-        <p className="text-[var(--app-foreground-muted)] mb-4">
-          Experience the power of seamless sponsored transactions with{" "}
-          <a
-            href="https://onchainkit.xyz"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#0052FF] hover:underline"
-          >
-            OnchainKit
-          </a>
-          .
-        </p>
+  const handleOptionSelect = (optionId: string) => {
+    setSelectedOption(optionId);
+  };
 
-        <div className="flex flex-col items-center">
-          {address ? (
+  // Loading state
+  if (!predictionEvent) {
+    return (
+      <div className="space-y-6">
+        <Card title="🎯 Predict-a-Frame Market">
+          <div className="text-center py-8">
+            <div className="animate-pulse">
+              <div className="w-16 h-4 bg-gray-600 rounded mx-auto mb-4"></div>
+              <div className="w-full h-6 bg-gray-600 rounded mb-4"></div>
+              <div className="w-3/4 h-4 bg-gray-600 rounded mx-auto"></div>
+            </div>
+            <p className="text-[var(--app-foreground-muted)] mt-4">
+              Loading the next market event...
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Main Prediction Card */}
+      <Card title="🎯 Predict-a-Frame Market">
+        <div className="space-y-6">
+          {/* Event Info */}
+          <div className="text-center">
+            <div className="inline-block px-3 py-1 bg-[var(--app-accent-light)] text-[var(--app-accent)] text-xs font-medium rounded-full mb-3">
+              {predictionEvent.category}
+            </div>
+            <h2 className="text-xl font-semibold text-[var(--app-foreground)] mb-2">
+              {predictionEvent.question}
+            </h2>
+            <p className="text-[var(--app-foreground-muted)] text-sm mb-4">
+              {predictionEvent.description}
+            </p>
+          </div>
+
+          {/* Market Stats */}
+          <div className="grid grid-cols-2 gap-4 p-4 bg-[var(--app-card-bg)] rounded-lg border border-[var(--app-card-border)]">
+            <div className="text-center">
+              <div className="text-lg font-semibold text-[var(--app-accent)]">
+                {predictionEvent.totalPot} USDC
+              </div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">Total Pot</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-semibold text-[var(--app-accent)]">
+                {predictionEvent.totalBets}
+              </div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">Total Bets</div>
+            </div>
+          </div>
+
+          {/* Betting Options */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-[var(--app-foreground)]">Choose Your Prediction:</h3>
+            <div className="grid grid-cols-1 gap-3">
+              {predictionEvent.options.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => handleOptionSelect(option.id)}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    selectedOption === option.id
+                      ? "border-[var(--app-accent)] bg-[var(--app-accent-light)]"
+                      : "border-[var(--app-card-border)] hover:border-[var(--app-accent)]"
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-[var(--app-foreground)]">
+                      {option.label}
+                    </span>
+                    <span className="text-sm text-[var(--app-accent)] font-semibold">
+                      {option.odds}x
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bet Amount Selection */}
+          {selectedOption && (
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-[var(--app-foreground)]">
+                Bet Amount (USDC):
+              </label>
+              <div className="flex space-x-2">
+                {[1, 5, 10, 25].map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => setBetAmount(amount)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      betAmount === amount
+                        ? "bg-[var(--app-accent)] text-[var(--app-background)]"
+                        : "bg-[var(--app-card-bg)] border border-[var(--app-card-border)] text-[var(--app-foreground)] hover:border-[var(--app-accent)]"
+                    }`}
+                  >
+                    {amount}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Transaction Component */}
+          {selectedOption && address && (
+            <div className="flex flex-col items-center space-y-4">
             <Transaction
               calls={calls}
               onSuccess={handleSuccess}
               onError={(error: TransactionError) =>
-                console.error("Transaction failed:", error)
+                  console.error("Betting transaction failed:", error)
               }
             >
-              <TransactionButton className="text-white text-md" />
+                <div className="w-full grid grid-cols-2 gap-3">
+                  <TransactionButton className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-lg" />
+                  <TransactionButton className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-lg" />
+                </div>
               <TransactionStatus>
                 <TransactionStatusAction />
                 <TransactionStatusLabel />
@@ -450,13 +492,26 @@ function TransactionCard() {
                 <TransactionToastAction />
               </TransactionToast>
             </Transaction>
-          ) : (
-            <p className="text-yellow-400 text-sm text-center mt-2">
-              Connect your wallet to send a transaction
-            </p>
+            </div>
+          )}
+
+          {!address && (
+            <div className="text-center py-4">
+              <p className="text-yellow-400 text-sm mb-2">
+                Connect your wallet to place a USDC bet
+              </p>
+            </div>
           )}
         </div>
+      </Card>
+
+      {/* Mock NFT Reward Area */}
+      <div className="mt-6 pt-4 border-t border-[var(--app-card-border)] text-center">
+        <p className="text-xs text-yellow-500 font-medium">
+          ✅ Winning this bet mints a **Proof-of-Foresight NFT** for your profile.
+        </p>
+        </div>
       </div>
-    </Card>
   );
 }
+

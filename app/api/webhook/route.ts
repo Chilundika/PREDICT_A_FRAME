@@ -3,9 +3,10 @@ import {
   deleteUserNotificationDetails,
 } from "@/lib/notification";
 import { sendFrameNotification } from "@/lib/notification-client";
+import { isAddressAllowed } from "@/lib/config";
 import { http } from "viem";
 import { createPublicClient } from "viem";
-import { optimism } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 
 const appName = process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME;
 
@@ -35,7 +36,7 @@ const KEY_REGISTRY_ABI = [
 
 async function verifyFidOwnership(fid: number, appKey: `0x${string}`) {
   const client = createPublicClient({
-    chain: optimism,
+    chain: baseSepolia,
     transport: http(),
   });
 
@@ -74,6 +75,17 @@ export async function POST(request: Request) {
     return Response.json(
       { success: false, error: "Invalid FID ownership" },
       { status: 401 },
+    );
+  }
+
+  // Extract wallet address from the event if available
+  const walletAddress = event.walletAddress || event.address;
+  
+  // If wallet address is provided, validate it against baseBuilder allowed addresses
+  if (walletAddress && !isAddressAllowed(walletAddress)) {
+    return Response.json(
+      { success: false, error: "Wallet address not authorized" },
+      { status: 403 },
     );
   }
 

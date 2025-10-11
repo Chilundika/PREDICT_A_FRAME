@@ -23,6 +23,7 @@ import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
 import { Home } from "./components/DemoComponents";
 import { Features } from "./components/DemoComponents";
+import { LiveMarketFeed } from "./components/LiveMarketFeed";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
@@ -72,7 +73,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
-      <div className="w-full max-w-md mx-auto px-4 py-3">
+      <div className="w-full max-w-6xl mx-auto px-4 py-3">
         <header className="flex justify-between items-center mb-3 h-11">
           <div>
             <div className="flex items-center space-x-2">
@@ -96,8 +97,18 @@ export default function App() {
         </header>
 
         <main className="flex-1">
-          {activeTab === "home" && <Home setActiveTab={setActiveTab} />}
-          {activeTab === "features" && <Features setActiveTab={setActiveTab} />}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Main Prediction Card Section */}
+            <div className="flex-grow">
+              {activeTab === "home" && <Home setActiveTab={setActiveTab} />}
+              {activeTab === "features" && <Features setActiveTab={setActiveTab} />}
+            </div>
+
+            {/* Live Feed Section */}
+            <aside className="lg:w-1/3">
+              <LiveMarketFeed />
+            </aside>
+          </div>
         </main>
 
         <footer className="mt-2 pt-4 flex justify-center">
