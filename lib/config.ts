@@ -10,30 +10,15 @@ export interface AppConfig {
   baseBuilder: BaseBuilderConfig;
 }
 
-// Default configuration
-const defaultConfig: AppConfig = {
+// Hardcoded configuration
+const config: AppConfig = {
   baseBuilder: {
     allowedAddresses: ["0xA67323BE0685019F6B7D2dF308E17e3C00958b05"]
   }
 };
 
-// Load configuration from environment variables
-function loadConfigFromEnv(): AppConfig {
-  const allowedAddressesEnv = process.env.BASE_BUILDER_ALLOWED_ADDRESSES;
-  
-  const allowedAddresses = allowedAddressesEnv 
-    ? allowedAddressesEnv.split(',').map(addr => addr.trim())
-    : defaultConfig.baseBuilder.allowedAddresses;
-
-  return {
-    baseBuilder: {
-      allowedAddresses
-    }
-  };
-}
-
 // Export the configuration
-export const config = loadConfigFromEnv();
+export { config };
 
 // Validation helpers
 export function isValidEthereumAddress(address: string): boolean {
