@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePredictAFrameContract, useMarketEvents, useUserPredictions } from '@/app/hooks/useContract';
 import { AddressValidation } from '@/app/components/AddressValidation';
-import { Button } from '@coinbase/onchainkit';
+import { CONTRACT_CONFIG } from '@/lib/contract';
 
 interface PredictionFormProps {
   eventId: number;
@@ -11,19 +11,54 @@ interface PredictionFormProps {
 }
 
 export function PredictionForm({ eventId, onPredictionMade }: PredictionFormProps) {
-  const { makePrediction, isLoading, error } = usePredictAFrameContract();
+  const { makePrediction, approveUSDC, getUSDCBalance, getUSDCAllowance, isLoading, error, address } = usePredictAFrameContract();
   const [amount, setAmount] = useState('0.01');
   const [outcome, setOutcome] = useState<boolean>(true);
+  const [usdcBalance, setUsdcBalance] = useState('0');
+  const [allowance, setAllowance] = useState('0');
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (address) {
+        try {
+          const balance = await getUSDCBalance(address);
+          setUsdcBalance(balance);
+          
+          const currentAllowance = await getUSDCAllowance(address, CONTRACT_CONFIG.baseSepolia.contractAddress);
+          setAllowance(currentAllowance);
+        } catch (err) {
+          console.error('Failed to fetch USDC balance:', err);
+        }
+      }
+    };
+
+    fetchBalance();
+  }, [address, getUSDCBalance, getUSDCAllowance]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
+      // Check if user has enough USDC
+      if (parseFloat(usdcBalance) < parseFloat(amount)) {
+        alert('Insufficient USDC balance');
+        return;
+      }
+
+      // Check if user has approved enough USDC
+      if (parseFloat(allowance) < parseFloat(amount)) {
+        const approveTx = await approveUSDC(amount);
+        await approveTx.wait();
+        alert('USDC approved! Please submit your prediction again.');
+        return;
+      }
+
       await makePrediction(eventId, outcome, amount);
       onPredictionMade?.();
       alert('Prediction made successfully!');
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    } catch (err) {
+      const error = err as Error;
+      alert(`Error: ${error.message}`);
     }
   };
 
@@ -33,17 +68,26 @@ export function PredictionForm({ eventId, onPredictionMade }: PredictionFormProp
         <h3 className="text-lg font-semibold">Make a Prediction</h3>
         
         <div>
-          <label className="block text-sm font-medium mb-2">Prediction Amount (ETH)</label>
+          <label className="block text-sm font-medium mb-2">Prediction Amount (USDC)</label>
           <input
             type="number"
-            step="0.001"
-            min="0.001"
-            max="10"
+            step="0.01"
+            min="0.01"
+            max="10000"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className="w-full p-2 border rounded"
             required
           />
+          <div className="text-sm text-gray-600 mt-1">
+            Balance: {parseFloat(usdcBalance).toFixed(2)} USDC
+          </div>
+          <div className="text-sm text-gray-600">
+            Allowance: {parseFloat(allowance).toFixed(2)} USDC
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            Min: 0.01 USDC | Max: 10,000 USDC
+          </div>
         </div>
 
         <div>
@@ -74,19 +118,32 @@ export function PredictionForm({ eventId, onPredictionMade }: PredictionFormProp
           <div className="text-red-600 text-sm">{error}</div>
         )}
 
-        <Button
+        <button
           type="submit"
           disabled={isLoading}
-          className="w-full"
+          className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
         >
           {isLoading ? 'Making Prediction...' : 'Make Prediction'}
-        </Button>
+        </button>
       </form>
     </AddressValidation>
   );
 }
 
-export function MarketEventCard({ event }: { event: any }) {
+interface MarketEventCardProps {
+  event: {
+    id: number;
+    description: string;
+    endTime: number;
+    resolved: boolean;
+    outcome: boolean;
+    totalPool: string;
+    yesPool: string;
+    noPool: string;
+  };
+}
+
+export function MarketEventCard({ event }: MarketEventCardProps) {
   const [showPredictionForm, setShowPredictionForm] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState('');
 
@@ -112,8 +169,8 @@ export function MarketEventCard({ event }: { event: any }) {
     return () => clearInterval(interval);
   }, [event.endTime]);
 
-  const formatEther = (wei: string) => {
-    return (parseFloat(wei) / 1e18).toFixed(4);
+  const formatUSDC = (amount: string) => {
+    return parseFloat(amount).toFixed(2);
   };
 
   return (
@@ -126,15 +183,15 @@ export function MarketEventCard({ event }: { event: any }) {
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
           <span className="font-medium">Total Pool:</span>
-          <span className="ml-2">{formatEther(event.totalPool)} ETH</span>
+          <span className="ml-2">{formatUSDC(event.totalPool)} USDC</span>
         </div>
         <div>
           <span className="font-medium">YES Pool:</span>
-          <span className="ml-2">{formatEther(event.yesPool)} ETH</span>
+          <span className="ml-2">{formatUSDC(event.yesPool)} USDC</span>
         </div>
         <div>
           <span className="font-medium">NO Pool:</span>
-          <span className="ml-2">{formatEther(event.noPool)} ETH</span>
+          <span className="ml-2">{formatUSDC(event.noPool)} USDC</span>
         </div>
         <div>
           <span className="font-medium">Status:</span>
@@ -144,12 +201,12 @@ export function MarketEventCard({ event }: { event: any }) {
 
       {!event.resolved && timeRemaining !== 'Event Ended' && (
         <div className="flex space-x-2">
-          <Button
+          <button
             onClick={() => setShowPredictionForm(!showPredictionForm)}
-            variant="secondary"
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
           >
             {showPredictionForm ? 'Hide' : 'Make Prediction'}
-          </Button>
+          </button>
         </div>
       )}
 
@@ -165,7 +222,7 @@ export function MarketEventCard({ event }: { event: any }) {
 
 export function ContractDashboard() {
   const { events, isLoading, refetch } = useMarketEvents();
-  const { predictions, isLoading: predictionsLoading } = useUserPredictions();
+  const { predictions } = useUserPredictions();
   const { getContractBalance } = usePredictAFrameContract();
   const [contractBalance, setContractBalance] = useState('0');
 
@@ -193,7 +250,7 @@ export function ContractDashboard() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Prediction Market</h2>
         <div className="text-sm text-gray-600">
-          Contract Balance: {parseFloat(contractBalance).toFixed(4)} ETH
+          Contract Balance: {parseFloat(contractBalance).toFixed(2)} USDC
         </div>
       </div>
 
@@ -218,7 +275,7 @@ export function ContractDashboard() {
                 <div>
                   <span className="font-medium">Event #{prediction.eventId}</span>
                   <span className="ml-2 text-sm text-gray-600">
-                    {prediction.outcome ? 'YES' : 'NO'} - {parseFloat(prediction.amount).toFixed(4)} ETH
+                    {prediction.outcome ? 'YES' : 'NO'} - {parseFloat(prediction.amount).toFixed(2)} USDC
                   </span>
                 </div>
                 <div className="text-sm text-gray-600">
@@ -230,9 +287,12 @@ export function ContractDashboard() {
         </div>
       )}
 
-      <Button onClick={refetch} variant="secondary">
+      <button
+        onClick={refetch}
+        className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+      >
         Refresh Events
-      </Button>
+      </button>
     </div>
   );
 }

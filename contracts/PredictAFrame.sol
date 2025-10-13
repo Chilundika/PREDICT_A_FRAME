@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title PredictAFrame
@@ -11,6 +12,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @notice Allows users to make predictions on market events and earn rewards
  */
 contract PredictAFrame is ReentrancyGuard, Ownable {
+    using SafeERC20 for IERC20;
+    
     // Events
     event PredictionCreated(uint256 indexed predictionId, address indexed user, uint256 amount, bool outcome);
     event PredictionResolved(uint256 indexed predictionId, bool outcome, uint256 totalRewards);
@@ -51,12 +54,16 @@ contract PredictAFrame is ReentrancyGuard, Ownable {
     // BaseBuilder access control
     mapping(address => bool) public allowedAddresses;
     
+    // USDC Token
+    IERC20 public immutable usdcToken;
+    
     // Constants
-    uint256 public constant MIN_PREDICTION_AMOUNT = 0.001 ether;
-    uint256 public constant MAX_PREDICTION_AMOUNT = 10 ether;
+    uint256 public constant MIN_PREDICTION_AMOUNT = 1 * 10**4; // 0.01 USDC (6 decimals)
+    uint256 public constant MAX_PREDICTION_AMOUNT = 10000 * 10**6; // 10,000 USDC
     uint256 public constant PLATFORM_FEE_PERCENTAGE = 5; // 5%
     
-    constructor() {
+    constructor(address _usdcToken) Ownable(msg.sender) {
+        usdcToken = IERC20(_usdcToken);
         // Add the BaseBuilder allowed address
         allowedAddresses[0xA67323BE0685019F6B7D2dF308E17e3C00958b05] = true;
     }
@@ -132,9 +139,13 @@ contract PredictAFrame is ReentrancyGuard, Ownable {
     // Public functions
     function makePrediction(
         uint256 eventId,
-        bool outcome
-    ) external payable nonReentrant eventExists(eventId) eventNotResolved(eventId) validPredictionAmount(msg.value) {
-        require(msg.value > 0, "Must send ETH");
+        bool outcome,
+        uint256 amount
+    ) external nonReentrant eventExists(eventId) eventNotResolved(eventId) validPredictionAmount(amount) {
+        require(amount > 0, "Amount must be greater than 0");
+        
+        // Transfer USDC from user to contract
+        usdcToken.safeTransferFrom(msg.sender, address(this), amount);
         
         uint256 predictionId = nextPredictionId++;
         
@@ -142,7 +153,7 @@ contract PredictAFrame is ReentrancyGuard, Ownable {
             id: predictionId,
             eventId: eventId,
             user: msg.sender,
-            amount: msg.value,
+            amount: amount,
             outcome: outcome,
             claimed: false,
             timestamp: block.timestamp
@@ -153,14 +164,14 @@ contract PredictAFrame is ReentrancyGuard, Ownable {
 
         // Update pools
         MarketEvent storage event_ = marketEvents[eventId];
-        event_.totalPool += msg.value;
+        event_.totalPool += amount;
         if (outcome) {
-            event_.yesPool += msg.value;
+            event_.yesPool += amount;
         } else {
-            event_.noPool += msg.value;
+            event_.noPool += amount;
         }
 
-        emit PredictionCreated(predictionId, msg.sender, msg.value, outcome);
+        emit PredictionCreated(predictionId, msg.sender, amount, outcome);
     }
 
     function claimRewards(uint256 predictionId) external nonReentrant {
@@ -177,8 +188,8 @@ contract PredictAFrame is ReentrancyGuard, Ownable {
         // Calculate reward based on pool ratios
         uint256 reward = _calculateReward(prediction.eventId, prediction.amount, prediction.outcome);
         
-        // Transfer reward
-        payable(msg.sender).transfer(reward);
+        // Transfer USDC reward
+        usdcToken.safeTransfer(msg.sender, reward);
         
         emit RewardsDistributed(predictionId, msg.sender, reward);
     }
@@ -254,10 +265,15 @@ contract PredictAFrame is ReentrancyGuard, Ownable {
 
     // Emergency functions
     function emergencyWithdraw() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+        uint256 balance = usdcToken.balanceOf(address(this));
+        usdcToken.safeTransfer(owner(), balance);
     }
 
     function getContractBalance() external view returns (uint256) {
-        return address(this).balance;
+        return usdcToken.balanceOf(address(this));
+    }
+
+    function getUSDCAddress() external view returns (address) {
+        return address(usdcToken);
     }
 }

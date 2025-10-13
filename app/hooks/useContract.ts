@@ -1,30 +1,41 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { createContractInstance, PredictAFrameContract, MarketEvent, Prediction } from '@/lib/contract';
 import { CONTRACT_CONFIG } from '@/lib/contract';
+import { ethers } from 'ethers';
 
 export function usePredictAFrameContract() {
   const { address, isConnected } = useAccount();
-  const publicClient = usePublicClient();
-  const { data: walletClient } = useWalletClient();
   
   const [contract, setContract] = useState<PredictAFrameContract | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize contract
+  // Initialize contract with ethers provider
   useEffect(() => {
-    if (publicClient && CONTRACT_CONFIG.baseSepolia.contractAddress) {
-      const contractInstance = createContractInstance(
-        CONTRACT_CONFIG.baseSepolia.contractAddress,
-        publicClient,
-        walletClient
-      );
-      setContract(contractInstance);
-    }
-  }, [publicClient, walletClient]);
+    const initContract = async () => {
+      try {
+        // Create ethers provider directly from RPC URL
+        const provider = new ethers.JsonRpcProvider(CONTRACT_CONFIG.baseSepolia.rpcUrl);
+        
+        // Create contract instance with read-only provider
+        const contractInstance = createContractInstance(
+          CONTRACT_CONFIG.baseSepolia.contractAddress,
+          CONTRACT_CONFIG.baseSepolia.usdcAddress,
+          provider
+        );
+        
+        setContract(contractInstance);
+      } catch (err) {
+        console.error('Failed to initialize contract:', err);
+        setError('Failed to initialize contract');
+      }
+    };
+
+    initContract();
+  }, []);
 
   // Contract interaction functions
   const makePrediction = useCallback(async (
@@ -43,8 +54,9 @@ export function usePredictAFrameContract() {
       const tx = await contract.makePrediction(eventId, outcome, amount);
       await tx.wait();
       return tx;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -63,8 +75,9 @@ export function usePredictAFrameContract() {
       const tx = await contract.claimRewards(predictionId);
       await tx.wait();
       return tx;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -86,8 +99,9 @@ export function usePredictAFrameContract() {
       const tx = await contract.createMarketEvent(description, durationHours);
       await tx.wait();
       return tx;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -109,8 +123,9 @@ export function usePredictAFrameContract() {
       const tx = await contract.resolveMarketEvent(eventId, outcome);
       await tx.wait();
       return tx;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -125,8 +140,9 @@ export function usePredictAFrameContract() {
 
     try {
       return await contract.getMarketEvent(eventId);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       throw err;
     }
   }, [contract]);
@@ -138,8 +154,9 @@ export function usePredictAFrameContract() {
 
     try {
       return await contract.getPrediction(predictionId);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       throw err;
     }
   }, [contract]);
@@ -151,8 +168,9 @@ export function usePredictAFrameContract() {
 
     try {
       return await contract.getUserPredictions(address);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       throw err;
     }
   }, [contract, address]);
@@ -164,8 +182,9 @@ export function usePredictAFrameContract() {
 
     try {
       return await contract.getActiveEvents();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       throw err;
     }
   }, [contract]);
@@ -177,8 +196,9 @@ export function usePredictAFrameContract() {
 
     try {
       return await contract.isAddressAllowed(address);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       return false;
     }
   }, [contract, address]);
@@ -190,8 +210,58 @@ export function usePredictAFrameContract() {
 
     try {
       return await contract.getContractBalance();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
+      throw err;
+    }
+  }, [contract]);
+
+  const approveUSDC = useCallback(async (amount: string) => {
+    if (!contract || !isConnected) {
+      throw new Error('Contract not available or wallet not connected');
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const tx = await contract.approveUSDC(amount);
+      await tx.wait();
+      return tx;
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [contract, isConnected]);
+
+  const getUSDCBalance = useCallback(async (address: string): Promise<string> => {
+    if (!contract) {
+      throw new Error('Contract not available');
+    }
+
+    try {
+      return await contract.getUSDCBalance(address);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
+      throw err;
+    }
+  }, [contract]);
+
+  const getUSDCAllowance = useCallback(async (owner: string, spender: string): Promise<string> => {
+    if (!contract) {
+      throw new Error('Contract not available');
+    }
+
+    try {
+      return await contract.getUSDCAllowance(owner, spender);
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
       throw err;
     }
   }, [contract]);
@@ -207,6 +277,7 @@ export function usePredictAFrameContract() {
     claimRewards,
     createMarketEvent,
     resolveMarketEvent,
+    approveUSDC,
     // Read functions
     getMarketEvent,
     getPrediction,
@@ -214,22 +285,34 @@ export function usePredictAFrameContract() {
     getActiveEvents,
     isAddressAllowed,
     getContractBalance,
+    getUSDCBalance,
+    getUSDCAllowance,
   };
 }
 
 // Hook for market events
 export function useMarketEvents() {
-  const { getActiveEvents, isLoading, error } = usePredictAFrameContract();
+  const { getActiveEvents, isLoading, error, contract } = usePredictAFrameContract();
   const [events, setEvents] = useState<MarketEvent[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
 
   const fetchEvents = useCallback(async () => {
+    // Don't fetch if contract is not ready
+    if (!contract) {
+      console.log('Contract not ready yet, skipping fetch');
+      return;
+    }
+
     try {
+      setIsFetching(true);
       const activeEvents = await getActiveEvents();
       setEvents(activeEvents);
     } catch (err) {
       console.error('Failed to fetch events:', err);
+    } finally {
+      setIsFetching(false);
     }
-  }, [getActiveEvents]);
+  }, [getActiveEvents, contract]);
 
   useEffect(() => {
     fetchEvents();
@@ -241,7 +324,7 @@ export function useMarketEvents() {
 
   return {
     events,
-    isLoading,
+    isLoading: isLoading || isFetching,
     error,
     refetch: fetchEvents,
   };

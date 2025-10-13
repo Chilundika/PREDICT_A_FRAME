@@ -16,7 +16,8 @@ import {
   TransactionStatus,
 } from "@coinbase/onchainkit/transaction";
 import { useNotification } from "@coinbase/onchainkit/minikit";
-import useMarketEvent from "../hooks/useMarketEvent";
+import { CONTRACT_CONFIG } from "@/lib/contract";
+import { useMarketEvents } from "../hooks/useContract";
 
 type ButtonProps = {
   children: ReactNode;
@@ -287,64 +288,69 @@ export function Icon({ name, size = "md", className = "" }: IconProps) {
 
 
 
-// Prediction Market Types
-type PredictionOption = {
-  id: string;
-  label: string;
-  odds: number;
-  betAmount: number;
-};
-
-type PredictionEvent = {
-  id: string;
-  question: string;
-  description: string;
-  options: PredictionOption[];
-  totalPot: number;
-  totalBets: number;
-  endTime: string;
-  category: string;
-};
-
 export function PredictionMarket() {
   const { address } = useAccount();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [betAmount, setBetAmount] = useState<number>(1); // Default 1 USDC
+  const [betAmount, setBetAmount] = useState<number>(0.01); // Default 0.01 USDC
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   
-  // Dynamic market event data from CoinGecko API
-  const event = useMarketEvent();
-
-  // Convert dynamic event to prediction format
-  const predictionEvent: PredictionEvent | null = event ? {
-    id: "dynamic-event",
-    question: event.question,
-    description: event.description,
-    options: [
-      { id: "yes", label: "Yes (Higher)", odds: 1.8, betAmount: 0 },
-      { id: "no", label: "No (Lower)", odds: 2.1, betAmount: 0 }
-    ],
-    totalPot: parseFloat(event.totalPot),
-    totalBets: event.totalBets,
-    endTime: "2024-01-26T17:00:00Z",
-    category: event.category
-  } : null;
+  // Constants for bet amount limits
+  const MIN_BET = 0.01;
+  const MAX_BET = 10;
+  
+  // Fetch real blockchain events
+  const { events, isLoading: eventsLoading, refetch } = useMarketEvents();
+  
+  // Auto-select first active event if none selected
+  const selectedEvent = selectedEventId 
+    ? events.find(e => e.id === selectedEventId) 
+    : events.find(e => !e.resolved) || events[0];
+  
+  // Update selected event ID when events load
+  if (!selectedEventId && selectedEvent) {
+    setSelectedEventId(selectedEvent.id);
+  }
 
   // Transaction calls for betting with USDC
   const calls = useMemo(() => {
-    if (!address || !selectedOption) return [];
+    if (!address || !selectedOption || !selectedEvent) return [];
     
-    // USDC contract address on Base Sepolia (testnet)
-    const USDC_CONTRACT = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as `0x${string}`;
+    const USDC_CONTRACT = CONTRACT_CONFIG.baseSepolia.usdcAddress as `0x${string}`;
+    const PREDICT_CONTRACT = CONTRACT_CONFIG.baseSepolia.contractAddress as `0x${string}`;
     
-    // Simulate betting by transferring USDC to self (representing pool deposit)
+    // Amount in USDC (6 decimals)
+    const amountInWei = BigInt(Math.floor(betAmount * 1e6));
+    
+    // Use the selected event's ID
+    const eventId = BigInt(selectedEvent.id);
+    
+    // Outcome: true for "yes", false for "no"
+    const outcome = selectedOption === "yes";
+    
+    // Create transaction calls:
+    // 1. Approve USDC spending
+    // 2. Make prediction on contract
     return [
       {
         to: USDC_CONTRACT,
-        data: `0xa9059cbb${address.slice(2).padStart(64, '0')}${BigInt(Math.floor(betAmount * 1e6)).toString(16).padStart(64, '0')}` as `0x${string}`, // transfer(address,uint256)
-        value: BigInt(0), // No ETH value for ERC20 transfer
+        // approve(address spender, uint256 amount)
+        data: `0x095ea7b3${PREDICT_CONTRACT.slice(2).padStart(64, '0')}${amountInWei.toString(16).padStart(64, '0')}` as `0x${string}`,
+        value: BigInt(0),
+      },
+      {
+        to: PREDICT_CONTRACT,
+        // makePrediction(uint256 eventId, bool outcome, uint256 amount)
+        data: `0x${
+          // Function selector for makePrediction(uint256,bool,uint256)
+          'cf1fbac8' +
+          eventId.toString(16).padStart(64, '0') +
+          (outcome ? '0000000000000000000000000000000000000000000000000000000000000001' : '0000000000000000000000000000000000000000000000000000000000000000') +
+          amountInWei.toString(16).padStart(64, '0')
+        }` as `0x${string}`,
+        value: BigInt(0),
       },
     ];
-  }, [address, selectedOption, betAmount]);
+  }, [address, selectedOption, betAmount, selectedEvent]);
 
   const sendNotification = useNotification();
 
@@ -353,18 +359,57 @@ export function PredictionMarket() {
 
     console.log(`Bet placed successfully: ${transactionHash}`);
 
+    // Refresh events to show updated pool
+    await refetch();
+
     await sendNotification({
       title: "Bet Placed! 🎯",
-      body: `Your prediction has been recorded. Transaction: ${transactionHash.slice(0, 10)}...`,
+      body: `Your prediction has been recorded on blockchain. TX: ${transactionHash.slice(0, 10)}...`,
     });
-  }, [sendNotification]);
+  }, [sendNotification, refetch]);
 
   const handleOptionSelect = (optionId: string) => {
     setSelectedOption(optionId);
   };
 
+  // Handle bet amount changes with min/max constraints
+  const handleBetAmountChange = (amount: number) => {
+    const clampedAmount = Math.max(MIN_BET, Math.min(MAX_BET, amount));
+    setBetAmount(parseFloat(clampedAmount.toFixed(2)));
+  };
+
+  const increaseBetAmount = () => {
+    const increment = betAmount < 1 ? 0.1 : 1;
+    handleBetAmountChange(betAmount + increment);
+  };
+
+  const decreaseBetAmount = () => {
+    const decrement = betAmount <= 1 ? 0.1 : 1;
+    handleBetAmountChange(betAmount - decrement);
+  };
+
+  // Format USDC amounts from wei (6 decimals)
+  const formatUSDC = (amount: string) => {
+    return (Number(amount) / 1e6).toFixed(2);
+  };
+
+  // Calculate odds based on pool sizes
+  const calculateOdds = (yesPool: string, noPool: string, isYes: boolean) => {
+    const yes = Number(yesPool) / 1e6;
+    const no = Number(noPool) / 1e6;
+    const total = yes + no;
+    
+    if (total === 0) return 2.0; // Default odds if no bets yet
+    
+    if (isYes) {
+      return no === 0 ? 2.0 : (total / yes).toFixed(2);
+    } else {
+      return yes === 0 ? 2.0 : (total / no).toFixed(2);
+    }
+  };
+
   // Loading state
-  if (!predictionEvent) {
+  if (eventsLoading && events.length === 0) {
     return (
       <div className="space-y-6">
         <Card title="🎯 Predict-a-Frame Market">
@@ -375,7 +420,22 @@ export function PredictionMarket() {
               <div className="w-3/4 h-4 bg-gray-600 rounded mx-auto"></div>
             </div>
             <p className="text-[var(--app-foreground-muted)] mt-4">
-              Loading the next market event...
+              Loading blockchain market events...
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+  
+  // No events found
+  if (!selectedEvent) {
+    return (
+      <div className="space-y-6">
+        <Card title="🎯 Predict-a-Frame Market">
+          <div className="text-center py-8">
+            <p className="text-[var(--app-foreground-muted)]">
+              No active market events found on the blockchain.
             </p>
           </div>
         </Card>
@@ -388,32 +448,58 @@ export function PredictionMarket() {
       {/* Main Prediction Card */}
       <Card title="🎯 Predict-a-Frame Market">
         <div className="space-y-6">
+          {/* Event Selector - show if multiple events */}
+          {events.length > 1 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[var(--app-foreground)]">
+                Select Market Event:
+              </label>
+              <select
+                value={selectedEventId || ''}
+                onChange={(e) => setSelectedEventId(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] text-[var(--app-foreground)] focus:border-[var(--app-accent)] focus:outline-none"
+              >
+                {events.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    Event #{event.id}: {event.description.slice(0, 60)}...
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Event Info */}
           <div className="text-center">
             <div className="inline-block px-3 py-1 bg-[var(--app-accent-light)] text-[var(--app-accent)] text-xs font-medium rounded-full mb-3">
-              {predictionEvent.category}
+              {selectedEvent.resolved ? "Resolved" : "Active"} • Event #{selectedEvent.id}
             </div>
             <h2 className="text-xl font-semibold text-[var(--app-foreground)] mb-2">
-              {predictionEvent.question}
+              {selectedEvent.description}
             </h2>
             <p className="text-[var(--app-foreground-muted)] text-sm mb-4">
-              {predictionEvent.description}
+              Ends: {new Date(selectedEvent.endTime * 1000).toLocaleString()}
             </p>
           </div>
 
           {/* Market Stats */}
-          <div className="grid grid-cols-2 gap-4 p-4 bg-[var(--app-card-bg)] rounded-lg border border-[var(--app-card-border)]">
+          <div className="grid grid-cols-3 gap-4 p-4 bg-[var(--app-card-bg)] rounded-lg border border-[var(--app-card-border)]">
             <div className="text-center">
               <div className="text-lg font-semibold text-[var(--app-accent)]">
-                {predictionEvent.totalPot} USDC
+                {formatUSDC(selectedEvent.totalPool)}
               </div>
-              <div className="text-xs text-[var(--app-foreground-muted)]">Total Pot</div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">Total Pool</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold text-[var(--app-accent)]">
-                {predictionEvent.totalBets}
+              <div className="text-lg font-semibold text-green-500">
+                {formatUSDC(selectedEvent.yesPool)}
               </div>
-              <div className="text-xs text-[var(--app-foreground-muted)]">Total Bets</div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">YES Pool</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-semibold text-red-500">
+                {formatUSDC(selectedEvent.noPool)}
+              </div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">NO Pool</div>
             </div>
           </div>
 
@@ -421,26 +507,43 @@ export function PredictionMarket() {
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-[var(--app-foreground)]">Choose Your Prediction:</h3>
             <div className="grid grid-cols-1 gap-3">
-              {predictionEvent.options.map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => handleOptionSelect(option.id)}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    selectedOption === option.id
-                      ? "border-[var(--app-accent)] bg-[var(--app-accent-light)]"
-                      : "border-[var(--app-card-border)] hover:border-[var(--app-accent)]"
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-[var(--app-foreground)]">
-                      {option.label}
-                    </span>
-                    <span className="text-sm text-[var(--app-accent)] font-semibold">
-                      {option.odds}x
-                    </span>
-                  </div>
-                </button>
-              ))}
+              <button
+                onClick={() => handleOptionSelect("yes")}
+                disabled={selectedEvent.resolved}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  selectedOption === "yes"
+                    ? "border-green-500 bg-green-500 bg-opacity-10"
+                    : "border-[var(--app-card-border)] hover:border-green-500"
+                } ${selectedEvent.resolved ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-[var(--app-foreground)]">
+                    YES (Outcome: True)
+                  </span>
+                  <span className="text-sm text-green-500 font-semibold">
+                    {calculateOdds(selectedEvent.yesPool, selectedEvent.noPool, true)}x
+                  </span>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => handleOptionSelect("no")}
+                disabled={selectedEvent.resolved}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  selectedOption === "no"
+                    ? "border-red-500 bg-red-500 bg-opacity-10"
+                    : "border-[var(--app-card-border)] hover:border-red-500"
+                } ${selectedEvent.resolved ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-[var(--app-foreground)]">
+                    NO (Outcome: False)
+                  </span>
+                  <span className="text-sm text-red-500 font-semibold">
+                    {calculateOdds(selectedEvent.yesPool, selectedEvent.noPool, false)}x
+                  </span>
+                </div>
+              </button>
             </div>
           </div>
 
@@ -450,11 +553,36 @@ export function PredictionMarket() {
               <label className="text-sm font-medium text-[var(--app-foreground)]">
                 Bet Amount (USDC):
               </label>
-              <div className="flex space-x-2">
-                {[1, 5, 10, 25].map((amount) => (
+              
+              {/* Manual Controls */}
+              <div className="flex items-center justify-center space-x-3 mb-3">
+                <button
+                  onClick={decreaseBetAmount}
+                  disabled={betAmount <= MIN_BET}
+                  className="px-4 py-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] text-[var(--app-foreground)] hover:border-[var(--app-accent)] disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg"
+                >
+                  -
+                </button>
+                
+                <div className="px-6 py-2 rounded-lg bg-[var(--app-accent-light)] border-2 border-[var(--app-accent)] text-[var(--app-foreground)] font-semibold text-lg min-w-[100px] text-center">
+                  {betAmount.toFixed(2)}
+                </div>
+                
+                <button
+                  onClick={increaseBetAmount}
+                  disabled={betAmount >= MAX_BET}
+                  className="px-4 py-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] text-[var(--app-foreground)] hover:border-[var(--app-accent)] disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg"
+                >
+                  +
+                </button>
+              </div>
+              
+              {/* Preset Amounts */}
+              <div className="flex flex-wrap gap-2 justify-center">
+                {[0.01, 0.1, 1, 5, 10].map((amount) => (
                   <button
                     key={amount}
-                    onClick={() => setBetAmount(amount)}
+                    onClick={() => handleBetAmountChange(amount)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                       betAmount === amount
                         ? "bg-[var(--app-accent)] text-[var(--app-background)]"
@@ -465,11 +593,28 @@ export function PredictionMarket() {
                   </button>
                 ))}
               </div>
+              
+              {/* Min/Max Info */}
+              <p className="text-xs text-[var(--app-foreground-muted)] text-center">
+                Min: {MIN_BET} USDC | Max: {MAX_BET} USDC
+              </p>
+            </div>
+          )}
+
+          {/* Resolved Event Warning */}
+          {selectedEvent.resolved && (
+            <div className="text-center py-4 bg-yellow-500 bg-opacity-10 border border-yellow-500 rounded-lg">
+              <p className="text-yellow-500 text-sm font-medium">
+                ⚠️ This event has been resolved. You cannot place new bets.
+              </p>
+              <p className="text-yellow-400 text-xs mt-1">
+                Outcome: {selectedEvent.outcome ? "YES" : "NO"}
+              </p>
             </div>
           )}
 
           {/* Transaction Component */}
-          {selectedOption && address && (
+          {selectedOption && address && !selectedEvent.resolved && (
             <div className="flex flex-col items-center space-y-4">
             <Transaction
               calls={calls}
@@ -478,9 +623,8 @@ export function PredictionMarket() {
                   console.error("Betting transaction failed:", error)
               }
             >
-                <div className="w-full grid grid-cols-2 gap-3">
+                <div className="w-full">
                   <TransactionButton className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-lg" />
-                  <TransactionButton className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-lg" />
                 </div>
               <TransactionStatus>
                 <TransactionStatusAction />
@@ -505,10 +649,13 @@ export function PredictionMarket() {
         </div>
       </Card>
 
-      {/* Mock NFT Reward Area */}
+      {/* Info Area */}
       <div className="mt-6 pt-4 border-t border-[var(--app-card-border)] text-center">
-        <p className="text-xs text-yellow-500 font-medium">
-          ✅ Winning this bet mints a **Proof-of-Foresight NFT** for your profile.
+        <p className="text-xs text-[var(--app-foreground-muted)] font-medium">
+          💡 All predictions are recorded on Base Sepolia blockchain with USDC tokens
+        </p>
+        <p className="text-xs text-green-500 mt-2">
+          🎯 Winning predictions earn proportional rewards from the total pool
         </p>
         </div>
       </div>
