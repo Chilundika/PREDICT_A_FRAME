@@ -24,7 +24,7 @@ const config: AppConfig = {
     allowedAddresses: ["0xA67323BE0685019F6B7D2dF308E17e3C00958b05"]
   },
   contract: {
-    address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "",
+    address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x4A0C3Ab95be5e95f1bdCde88D5A15D87C366258f",
     network: "baseSepolia",
     chainId: 84532,
     explorerUrl: "https://sepolia.basescan.org"

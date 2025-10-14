@@ -233,22 +233,22 @@ contract PredictAFrame is ReentrancyGuard, Ownable {
     }
 
     // Internal functions
-    function _distributeRewards(uint256 eventId, bool outcome) internal {
-        MarketEvent storage event_ = marketEvents[eventId];
+    function _distributeRewards(uint256 eventId, bool outcome) internal view {
+        // This function validates that rewards can be distributed
+        // Actual reward distribution happens when users call claimRewards()
         uint256[] memory eventPreds = eventPredictions[eventId];
         
         for (uint256 i = 0; i < eventPreds.length; i++) {
             Prediction storage prediction = predictions[eventPreds[i]];
             if (prediction.outcome == outcome) {
-                uint256 reward = _calculateReward(eventId, prediction.amount, outcome);
-                // Rewards will be claimed individually by users
+                // Rewards will be claimed individually by users via claimRewards()
+                _calculateReward(eventId, prediction.amount, outcome);
             }
         }
     }
 
     function _calculateReward(uint256 eventId, uint256 amount, bool outcome) internal view returns (uint256) {
         MarketEvent memory event_ = marketEvents[eventId];
-        uint256 winningPool = outcome ? event_.yesPool : event_.noPool;
         uint256 totalWinningPool = outcome ? event_.yesPool : event_.noPool;
         
         if (totalWinningPool == 0) return 0;

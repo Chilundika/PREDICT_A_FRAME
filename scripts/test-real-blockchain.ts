@@ -1,8 +1,8 @@
 import hre from 'hardhat';
 const { ethers } = hre;
 
-// Contract and USDC addresses (Updated with 0.01 USDC minimum)
-const CONTRACT_ADDRESS = "0x8cc6E8E99B85a9CEd5EBF8F7A13dEd3a597A7710";
+// Contract and USDC addresses - Updated deployment
+const CONTRACT_ADDRESS = "0x4A0C3Ab95be5e95f1bdCde88D5A15D87C366258f";
 const USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
 // Full Contract ABI

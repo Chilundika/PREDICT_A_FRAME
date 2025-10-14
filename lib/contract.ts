@@ -1,23 +1,5 @@
 import { ethers } from 'ethers';
-
-// Contract ABI and types
-export const PREDICT_A_FRAME_ABI = [
-  "function makePrediction(uint256 eventId, bool outcome, uint256 amount) external",
-  "function claimRewards(uint256 predictionId) external",
-  "function createMarketEvent(string memory description, uint256 durationHours) external returns (uint256)",
-  "function resolveMarketEvent(uint256 eventId, bool outcome) external",
-  "function getMarketEvent(uint256 eventId) external view returns (tuple(uint256 id, string description, uint256 endTime, bool resolved, bool outcome, uint256 totalPool, uint256 yesPool, uint256 noPool))",
-  "function getPrediction(uint256 predictionId) external view returns (tuple(uint256 id, uint256 eventId, address user, uint256 amount, bool outcome, bool claimed, uint256 timestamp))",
-  "function getUserPredictions(address user) external view returns (uint256[])",
-  "function getActiveEvents() external view returns (tuple(uint256 id, string description, uint256 endTime, bool resolved, bool outcome, uint256 totalPool, uint256 yesPool, uint256 noPool)[])",
-  "function allowedAddresses(address) external view returns (bool)",
-  "function getUSDCAddress() external view returns (address)",
-  "function getContractBalance() external view returns (uint256)",
-  "event PredictionCreated(uint256 indexed predictionId, address indexed user, uint256 amount, bool outcome)",
-  "event PredictionResolved(uint256 indexed predictionId, bool outcome, uint256 totalRewards)",
-  "event MarketEventCreated(uint256 indexed eventId, string description, uint256 endTime)",
-  "event RewardsDistributed(uint256 indexed predictionId, address indexed user, uint256 amount)"
-];
+import { PREDICT_A_FRAME_ABI, CONTRACT_ADDRESS as DEPLOYED_CONTRACT_ADDRESS, USDC_ADDRESS as DEPLOYED_USDC_ADDRESS } from './contract-abi';
 
 // USDC ABI for token interactions
 export const USDC_ABI = [
@@ -37,8 +19,8 @@ export const CONTRACT_CONFIG = {
     chainId: 84532,
     rpcUrl: 'https://sepolia.base.org',
     explorerUrl: 'https://sepolia.basescan.org',
-    // Contract address with 0.01 USDC minimum prediction
-    contractAddress: '0xca29F50d9b54C8bf52c636861F77f6a595860Ffe',
+    // Contract address - Updated deployment with full ABI
+    contractAddress: '0x4A0C3Ab95be5e95f1bdCde88D5A15D87C366258f',
     usdcAddress: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
   },
   // Add mainnet config for future
