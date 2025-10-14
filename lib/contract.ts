@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { PREDICT_A_FRAME_ABI, CONTRACT_ADDRESS as DEPLOYED_CONTRACT_ADDRESS, USDC_ADDRESS as DEPLOYED_USDC_ADDRESS } from './contract-abi';
+import { PREDICT_A_FRAME_ABI } from './contract-abi';
 
 // USDC ABI for token interactions
 export const USDC_ABI = [
