@@ -41,23 +41,23 @@ export function Button({
   icon,
 }: ButtonProps) {
   const baseClasses =
-    "inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0052FF] disabled:opacity-50 disabled:pointer-events-none";
+    "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyber-purple/50 disabled:opacity-50 disabled:pointer-events-none";
 
   const variantClasses = {
     primary:
-      "bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-[var(--app-background)]",
+      "bg-cyber-gradient hover:shadow-cyber text-white font-semibold",
     secondary:
-      "bg-[var(--app-gray)] hover:bg-[var(--app-gray-dark)] text-[var(--app-foreground)]",
+      "bg-cyber-darker/80 hover:bg-cyber-darker border border-cyber-purple/30 text-cyber-purple hover:text-white hover:border-cyber-purple",
     outline:
-      "border border-[var(--app-accent)] hover:bg-[var(--app-accent-light)] text-[var(--app-accent)]",
+      "border border-cyber-teal hover:bg-cyber-teal/10 text-cyber-teal hover:shadow-cyber-lg",
     ghost:
-      "hover:bg-[var(--app-accent-light)] text-[var(--app-foreground-muted)]",
+      "hover:bg-cyber-purple/10 text-cyber-teal hover:text-cyber-purple",
   };
 
   const sizeClasses = {
-    sm: "text-xs px-2.5 py-1.5 rounded-md",
-    md: "text-sm px-4 py-2 rounded-lg",
-    lg: "text-base px-6 py-3 rounded-lg",
+    sm: "text-xs px-3 py-2 rounded-lg",
+    md: "text-sm px-5 py-3 rounded-lg",
+    lg: "text-base px-7 py-4 rounded-xl",
   };
 
   return (
@@ -78,6 +78,7 @@ type CardProps = {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
+  headerAction?: ReactNode;
 }
 
 export function Card({
@@ -85,6 +86,7 @@ export function Card({
   children,
   className = "",
   onClick,
+  headerAction,
 }: CardProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (onClick && (e.key === "Enter" || e.key === " ")) {
@@ -95,20 +97,27 @@ export function Card({
 
   return (
     <div
-      className={`bg-[var(--app-card-bg)] backdrop-blur-md rounded-xl shadow-lg border border-[var(--app-card-border)] overflow-hidden transition-all hover:shadow-xl ${className} ${onClick ? "cursor-pointer" : ""}`}
+      className={`cyber-card backdrop-blur-md rounded-xl shadow-cyber-lg border border-cyber-purple/20 overflow-hidden transition-all duration-300 hover:shadow-cyber-xl hover:border-cyber-purple/40 cyber-hologram ${className} ${onClick ? "cursor-pointer hover:scale-[1.02] cyber-pulse" : ""}`}
       onClick={onClick}
       onKeyDown={onClick ? handleKeyDown : undefined}
       tabIndex={onClick ? 0 : undefined}
       role={onClick ? "button" : undefined}
     >
       {title && (
-        <div className="px-5 py-3 border-b border-[var(--app-card-border)]">
-          <h3 className="text-lg font-medium text-[var(--app-foreground)]">
-            {title}
-          </h3>
+        <div className="px-6 py-4 border-b border-cyber-purple/20 bg-cyber-darker/30 cyber-scan-line">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold gradient-text cyber-glow">
+              {title}
+            </h3>
+            {headerAction && (
+              <div className="flex items-center space-x-2">
+                {headerAction}
+              </div>
+            )}
+          </div>
         </div>
       )}
-      <div className="p-5">{children}</div>
+      <div className="p-6 cyber-gradient-bg">{children}</div>
     </div>
   );
 }
@@ -168,19 +177,25 @@ type HomeProps = {
 export function Home({ setActiveTab }: HomeProps) {
   return (
     <div className="space-y-6 animate-fade-in">
-      <Card title="Predict-a-Frame Market">
-        <p className="text-[var(--app-foreground-muted)] mb-4">
-          Welcome to the decentralized prediction market! Make accurate predictions and earn rewards on Base network.
-        </p>
-        <Button
-          onClick={() => setActiveTab("features")}
-          icon={<Icon name="arrow-right" size="sm" />}
-        >
-          Learn More
-        </Button>
+      <Card title="PREDICTA">
+        <div className="space-y-4">
+          <div className="flex space-x-3 pt-2">
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={() => setActiveTab("prediction")}
+            >
+              Start Predicting →
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setActiveTab("features")}
+            >
+              View Features
+            </Button>
+          </div>
+        </div>
       </Card>
-
-      <PredictionMarket />
     </div>
   );
 }
@@ -285,10 +300,11 @@ export function Icon({ name, size = "md", className = "" }: IconProps) {
   );
 }
 
+type PredictionMarketProps = {
+  setActiveTab: (tab: string) => void;
+};
 
-
-
-export function PredictionMarket() {
+export function PredictionMarket({ setActiveTab: _setActiveTab }: PredictionMarketProps) {
   const { address } = useAccount();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [betAmount, setBetAmount] = useState<number>(0.01); // Default 0.01 USDC
@@ -412,14 +428,14 @@ export function PredictionMarket() {
   if (eventsLoading && events.length === 0) {
     return (
       <div className="space-y-6">
-        <Card title="🎯 Predict-a-Frame Market">
+        <Card title="🎯 Predict-a-Frame Market" className="cyber-hologram cyber-scan-line">
           <div className="text-center py-8">
             <div className="animate-pulse">
-              <div className="w-16 h-4 bg-gray-600 rounded mx-auto mb-4"></div>
-              <div className="w-full h-6 bg-gray-600 rounded mb-4"></div>
-              <div className="w-3/4 h-4 bg-gray-600 rounded mx-auto"></div>
+              <div className="w-16 h-4 bg-cyber-purple/30 rounded mx-auto mb-4 shadow-cyber"></div>
+              <div className="w-full h-6 bg-cyber-purple/30 rounded mb-4 shadow-cyber"></div>
+              <div className="w-3/4 h-4 bg-cyber-purple/30 rounded mx-auto shadow-cyber"></div>
             </div>
-            <p className="text-[var(--app-foreground-muted)] mt-4">
+            <p className="text-cyber-teal/70 mt-4 font-medium">
               Loading blockchain market events...
             </p>
           </div>
@@ -434,7 +450,7 @@ export function PredictionMarket() {
       <div className="space-y-6">
         <Card title="🎯 Predict-a-Frame Market">
           <div className="text-center py-8">
-            <p className="text-[var(--app-foreground-muted)]">
+            <p className="text-cyber-teal/70 font-medium">
               No active market events found on the blockchain.
             </p>
           </div>
@@ -451,16 +467,16 @@ export function PredictionMarket() {
           {/* Event Selector - show if multiple events */}
           {events.length > 1 && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--app-foreground)]">
+              <label className="text-sm font-medium text-white">
                 Select Market Event:
               </label>
               <select
                 value={selectedEventId || ''}
                 onChange={(e) => setSelectedEventId(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] text-[var(--app-foreground)] focus:border-[var(--app-accent)] focus:outline-none"
+                className="w-full px-3 py-2 rounded-lg bg-cyber-darker border border-cyber-purple/30 text-white focus:border-cyber-purple focus:outline-none focus:ring-2 focus:ring-cyber-purple/20 transition-all"
               >
                 {events.map((event) => (
-                  <option key={event.id} value={event.id}>
+                  <option key={event.id} value={event.id} className="bg-cyber-darker text-white">
                     Event #{event.id}: {event.description.slice(0, 60)}...
                   </option>
                 ))}
@@ -470,57 +486,57 @@ export function PredictionMarket() {
 
           {/* Event Info */}
           <div className="text-center">
-            <div className="inline-block px-3 py-1 bg-[var(--app-accent-light)] text-[var(--app-accent)] text-xs font-medium rounded-full mb-3">
+            <div className="inline-block px-3 py-1 bg-cyber-purple/20 text-cyber-purple text-xs font-medium rounded-full mb-3 border border-cyber-purple/30 cyber-glow">
               {selectedEvent.resolved ? "Resolved" : "Active"} • Event #{selectedEvent.id}
             </div>
-            <h2 className="text-xl font-semibold text-[var(--app-foreground)] mb-2">
+            <h2 className="text-xl font-semibold text-white mb-2">
               {selectedEvent.description}
             </h2>
-            <p className="text-[var(--app-foreground-muted)] text-sm mb-4">
+            <p className="text-cyber-teal/70 text-sm mb-4 font-medium">
               Ends: {new Date(selectedEvent.endTime * 1000).toLocaleString()}
             </p>
           </div>
 
           {/* Market Stats */}
-          <div className="grid grid-cols-3 gap-4 p-4 bg-[var(--app-card-bg)] rounded-lg border border-[var(--app-card-border)]">
+          <div className="grid grid-cols-3 gap-4 p-4 bg-cyber-darker/50 rounded-lg border border-cyber-purple/20 shadow-cyber-lg">
             <div className="text-center">
-              <div className="text-lg font-semibold text-[var(--app-accent)]">
+              <div className="text-lg font-semibold text-cyber-purple">
                 {formatUSDC(selectedEvent.totalPool)}
               </div>
-              <div className="text-xs text-[var(--app-foreground-muted)]">Total Pool</div>
+              <div className="text-xs text-cyber-teal/70 font-medium">Total Pool</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold text-green-500">
+              <div className="text-lg font-semibold text-green-400">
                 {formatUSDC(selectedEvent.yesPool)}
               </div>
-              <div className="text-xs text-[var(--app-foreground-muted)]">YES Pool</div>
+              <div className="text-xs text-cyber-teal/70 font-medium">YES Pool</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-semibold text-red-500">
+              <div className="text-lg font-semibold text-red-400">
                 {formatUSDC(selectedEvent.noPool)}
               </div>
-              <div className="text-xs text-[var(--app-foreground-muted)]">NO Pool</div>
+              <div className="text-xs text-cyber-teal/70 font-medium">NO Pool</div>
             </div>
           </div>
 
           {/* Betting Options */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-[var(--app-foreground)]">Choose Your Prediction:</h3>
+            <h3 className="text-sm font-medium text-white">Choose Your Prediction:</h3>
             <div className="grid grid-cols-1 gap-3">
               <button
                 onClick={() => handleOptionSelect("yes")}
                 disabled={selectedEvent.resolved}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   selectedOption === "yes"
-                    ? "border-green-500 bg-green-500 bg-opacity-10"
-                    : "border-[var(--app-card-border)] hover:border-green-500"
+                    ? "border-green-400 bg-green-400/10 shadow-cyber cyber-glow"
+                    : "border-cyber-purple/30 hover:border-green-400 bg-cyber-darker/30"
                 } ${selectedEvent.resolved ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-[var(--app-foreground)]">
+                  <span className="font-medium text-white">
                     YES (Outcome: True)
                   </span>
-                  <span className="text-sm text-green-500 font-semibold">
+                  <span className="text-sm text-green-400 font-semibold">
                     {calculateOdds(selectedEvent.yesPool, selectedEvent.noPool, true)}x
                   </span>
                 </div>
@@ -531,15 +547,15 @@ export function PredictionMarket() {
                 disabled={selectedEvent.resolved}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   selectedOption === "no"
-                    ? "border-red-500 bg-red-500 bg-opacity-10"
-                    : "border-[var(--app-card-border)] hover:border-red-500"
+                    ? "border-red-400 bg-red-400/10 shadow-cyber cyber-glow"
+                    : "border-cyber-purple/30 hover:border-red-400 bg-cyber-darker/30"
                 } ${selectedEvent.resolved ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-[var(--app-foreground)]">
+                  <span className="font-medium text-white">
                     NO (Outcome: False)
                   </span>
-                  <span className="text-sm text-red-500 font-semibold">
+                  <span className="text-sm text-red-400 font-semibold">
                     {calculateOdds(selectedEvent.yesPool, selectedEvent.noPool, false)}x
                   </span>
                 </div>
@@ -550,7 +566,7 @@ export function PredictionMarket() {
           {/* Bet Amount Selection */}
           {selectedOption && (
             <div className="space-y-3">
-              <label className="text-sm font-medium text-[var(--app-foreground)]">
+              <label className="text-sm font-medium text-white">
                 Bet Amount (USDC):
               </label>
               
@@ -559,19 +575,19 @@ export function PredictionMarket() {
                 <button
                   onClick={decreaseBetAmount}
                   disabled={betAmount <= MIN_BET}
-                  className="px-4 py-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] text-[var(--app-foreground)] hover:border-[var(--app-accent)] disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg"
+                  className="px-4 py-2 rounded-lg bg-cyber-darker border border-cyber-purple/30 text-white hover:border-cyber-purple disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg transition-all"
                 >
                   -
                 </button>
                 
-                <div className="px-6 py-2 rounded-lg bg-[var(--app-accent-light)] border-2 border-[var(--app-accent)] text-[var(--app-foreground)] font-semibold text-lg min-w-[100px] text-center">
+                <div className="px-6 py-2 rounded-lg bg-cyber-purple/20 border-2 border-cyber-purple text-white font-semibold text-lg min-w-[100px] text-center cyber-glow">
                   {betAmount.toFixed(2)}
                 </div>
                 
                 <button
                   onClick={increaseBetAmount}
                   disabled={betAmount >= MAX_BET}
-                  className="px-4 py-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)] text-[var(--app-foreground)] hover:border-[var(--app-accent)] disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg"
+                  className="px-4 py-2 rounded-lg bg-cyber-darker border border-cyber-purple/30 text-white hover:border-cyber-purple disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg transition-all"
                 >
                   +
                 </button>
@@ -585,8 +601,8 @@ export function PredictionMarket() {
                     onClick={() => handleBetAmountChange(amount)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                       betAmount === amount
-                        ? "bg-[var(--app-accent)] text-[var(--app-background)]"
-                        : "bg-[var(--app-card-bg)] border border-[var(--app-card-border)] text-[var(--app-foreground)] hover:border-[var(--app-accent)]"
+                        ? "bg-cyber-purple text-white cyber-glow"
+                        : "bg-cyber-darker border border-cyber-purple/30 text-white hover:border-cyber-purple"
                     }`}
                   >
                     {amount}
@@ -595,7 +611,7 @@ export function PredictionMarket() {
               </div>
               
               {/* Min/Max Info */}
-              <p className="text-xs text-[var(--app-foreground-muted)] text-center">
+              <p className="text-xs text-cyber-teal/70 text-center font-medium">
                 Min: {MIN_BET} USDC | Max: {MAX_BET} USDC
               </p>
             </div>
@@ -603,11 +619,11 @@ export function PredictionMarket() {
 
           {/* Resolved Event Warning */}
           {selectedEvent.resolved && (
-            <div className="text-center py-4 bg-yellow-500 bg-opacity-10 border border-yellow-500 rounded-lg">
-              <p className="text-yellow-500 text-sm font-medium">
+            <div className="text-center py-4 bg-yellow-400/10 border border-yellow-400/30 rounded-lg shadow-cyber">
+              <p className="text-yellow-400 text-sm font-medium">
                 ⚠️ This event has been resolved. You cannot place new bets.
               </p>
-              <p className="text-yellow-400 text-xs mt-1">
+              <p className="text-yellow-300 text-xs mt-1 font-medium">
                 Outcome: {selectedEvent.outcome ? "YES" : "NO"}
               </p>
             </div>
@@ -624,7 +640,7 @@ export function PredictionMarket() {
               }
             >
                 <div className="w-full">
-                  <TransactionButton className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-lg" />
+                  <TransactionButton className="w-full cyber-button-primary py-3 px-6 font-semibold" />
                 </div>
               <TransactionStatus>
                 <TransactionStatusAction />
@@ -641,7 +657,7 @@ export function PredictionMarket() {
 
           {!address && (
             <div className="text-center py-4">
-              <p className="text-yellow-400 text-sm mb-2">
+              <p className="text-cyber-teal text-sm mb-2 font-medium">
                 Connect your wallet to place a USDC bet
               </p>
             </div>
@@ -650,11 +666,11 @@ export function PredictionMarket() {
       </Card>
 
       {/* Info Area */}
-      <div className="mt-6 pt-4 border-t border-[var(--app-card-border)] text-center">
-        <p className="text-xs text-[var(--app-foreground-muted)] font-medium">
+      <div className="mt-6 pt-4 border-t border-cyber-purple/20 text-center">
+        <p className="text-xs text-cyber-teal/70 font-medium">
           💡 All predictions are recorded on Base Sepolia blockchain with USDC tokens
         </p>
-        <p className="text-xs text-green-500 mt-2">
+        <p className="text-xs text-cyber-purple mt-2 font-medium">
           🎯 Winning predictions earn proportional rewards from the total pool
         </p>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card } from "./DemoComponents";
+import { Card, Button } from "./DemoComponents";
 import { useMarketEvents } from "../hooks/useContract";
 
 interface MarketData {
@@ -12,10 +12,14 @@ interface MarketData {
   marketCap: number;
 }
 
-export function LiveMarketFeed() {
+type LiveMarketFeedProps = {
+  setActiveTab: (tab: string) => void;
+};
+
+export function LiveMarketFeed({ setActiveTab }: LiveMarketFeedProps) {
   const [marketData, setMarketData] = useState<MarketData[]>([]);
   const [isLoadingMarket, setIsLoadingMarket] = useState(true);
-  const [activeTab, setActiveTab] = useState<"market" | "predictions">("predictions");
+  const [localActiveTab, setLocalActiveTab] = useState<"market" | "predictions">("predictions");
 
   // Fetch real blockchain events using the hook
   const { events: blockchainEvents, isLoading: eventsLoading } = useMarketEvents();
@@ -166,25 +170,25 @@ export function LiveMarketFeed() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 cyber-grid-bg">
       {/* Tab Navigation */}
-      <div className="flex space-x-1 bg-[var(--app-card-bg)] rounded-lg p-1">
+      <div className="flex space-x-1 bg-cyber-darker/50 backdrop-blur-sm rounded-lg p-1 border border-cyber-purple/20 cyber-scan-line">
         <button
-          onClick={() => setActiveTab("market")}
-          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-            activeTab === "market"
-              ? "bg-[var(--app-accent)] text-[var(--app-background)]"
-              : "text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)]"
+          onClick={() => setLocalActiveTab("market")}
+          className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+            localActiveTab === "market"
+              ? "bg-cyber-gradient text-white shadow-cyber"
+              : "text-cyber-teal/70 hover:text-cyber-teal hover:bg-cyber-purple/10"
           }`}
         >
           Live Market
         </button>
         <button
-          onClick={() => setActiveTab("predictions")}
-          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-            activeTab === "predictions"
-              ? "bg-[var(--app-accent)] text-[var(--app-background)]"
-              : "text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)]"
+          onClick={() => setLocalActiveTab("predictions")}
+          className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+            localActiveTab === "predictions"
+              ? "bg-cyber-gradient text-white shadow-cyber"
+              : "text-cyber-teal/70 hover:text-cyber-teal hover:bg-cyber-purple/10"
           }`}
         >
           On-Chain Events
@@ -192,7 +196,7 @@ export function LiveMarketFeed() {
       </div>
 
       {/* Market Data Tab */}
-      {activeTab === "market" && (
+      {localActiveTab === "market" && (
         <Card title="📈 Live Market Data">
           <div className="space-y-3">
             {isLoadingMarket ? (
@@ -213,29 +217,29 @@ export function LiveMarketFeed() {
               marketData.map((coin) => (
                 <div
                   key={coin.symbol}
-                  className="flex justify-between items-center p-3 bg-[var(--app-card-bg)] rounded-lg hover:bg-[var(--app-gray)] transition-colors"
+                  className="flex justify-between items-center p-4 bg-cyber-darker/30 backdrop-blur-sm rounded-lg hover:bg-cyber-darker/50 transition-all duration-200 border border-cyber-purple/10 hover:border-cyber-purple/30 cyber-pulse"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-[var(--app-accent)] to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">
+                    <div className="w-10 h-10 bg-cyber-gradient rounded-full flex items-center justify-center shadow-cyber">
+                      <span className="text-white text-sm font-bold">
                         {coin.symbol.charAt(0)}
                       </span>
                     </div>
                     <div>
-                      <div className="font-medium text-[var(--app-foreground)]">
+                      <div className="font-semibold text-white">
                         {coin.symbol}
                       </div>
-                      <div className="text-xs text-[var(--app-foreground-muted)]">
+                      <div className="text-xs text-cyber-teal/70">
                         {formatMarketCap(coin.marketCap)}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-medium text-[var(--app-foreground)]">
+                    <div className="font-semibold text-white">
                       {formatPrice(coin.price)}
                     </div>
                     <div
-                      className={`text-xs ${
+                      className={`text-xs font-medium ${
                         coin.change24h >= 0 ? "text-green-400" : "text-red-400"
                       }`}
                     >
@@ -248,8 +252,8 @@ export function LiveMarketFeed() {
             )}
           </div>
           
-          <div className="mt-4 pt-3 border-t border-[var(--app-card-border)]">
-            <p className="text-xs text-[var(--app-foreground-muted)] text-center">
+          <div className="mt-4 pt-3 border-t border-cyber-purple/20">
+            <p className="text-xs text-cyber-teal/70 text-center font-medium">
               Live data from CoinGecko • Updates every 60s
             </p>
           </div>
@@ -257,8 +261,20 @@ export function LiveMarketFeed() {
       )}
 
       {/* Blockchain Predictions Tab */}
-      {activeTab === "predictions" && (
-        <Card title="🔗 Blockchain Events">
+      {localActiveTab === "predictions" && (
+        <Card 
+          title="🔗 Blockchain Events"
+          headerAction={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActiveTab("allmarkets")}
+              className="text-xs"
+            >
+              VIEW ALL
+            </Button>
+          }
+        >
           <div className="space-y-3">
             {eventsLoading && blockchainEvents.length === 0 ? (
               <div className="space-y-3">
@@ -286,63 +302,63 @@ export function LiveMarketFeed() {
                 return (
                   <div
                     key={event.id}
-                    className="p-3 bg-[var(--app-card-bg)] rounded-lg hover:bg-[var(--app-gray)] transition-colors border border-[var(--app-card-border)]"
+                    className="p-4 bg-cyber-darker/30 backdrop-blur-sm rounded-lg hover:bg-cyber-darker/50 transition-all duration-200 border border-cyber-purple/10 hover:border-cyber-purple/30 cyber-hologram"
                   >
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs text-[var(--app-foreground-muted)]">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs text-cyber-teal/70 font-medium">
                             #{event.id}
                           </span>
-                          <span className="text-xs px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded">
+                          <span className="text-xs px-2 py-1 bg-cyber-teal/20 text-cyber-teal rounded-lg font-medium">
                             On-Chain
                           </span>
                         </div>
-                        <h4 className="font-medium text-[var(--app-foreground)] text-sm mb-1">
+                        <h4 className="font-semibold text-white text-sm mb-2 leading-relaxed">
                           {event.description}
                         </h4>
-                        <div className="flex items-center space-x-2 text-xs text-[var(--app-foreground-muted)]">
-                          <span className="px-2 py-1 bg-[var(--app-accent-light)] text-[var(--app-accent)] rounded-full">
+                        <div className="flex items-center space-x-2 text-xs">
+                          <span className="px-3 py-1 bg-cyber-purple/20 text-cyber-purple rounded-full font-medium">
                             {category}
                           </span>
-                          <span className={getStatusColor(status)}>
+                          <span className={getStatusColor(status) + " font-medium"}>
                             {status}
                           </span>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 mb-2 mt-3">
+                    <div className="grid grid-cols-2 gap-3 mb-3 mt-3">
                       <div className="text-xs">
-                        <div className="text-[var(--app-foreground-muted)] mb-1">Total Pool</div>
-                        <div className="text-[var(--app-accent)] font-semibold">
+                        <div className="text-cyber-teal/70 mb-1 font-medium">Total Pool</div>
+                        <div className="text-cyber-purple font-bold text-sm">
                           {formatUSDC(event.totalPool)}
                         </div>
                       </div>
                       <div className="text-xs">
-                        <div className="text-[var(--app-foreground-muted)] mb-1">Est. Bets</div>
-                        <div className="text-[var(--app-foreground)] font-semibold">
+                        <div className="text-cyber-teal/70 mb-1 font-medium">Est. Bets</div>
+                        <div className="text-white font-bold text-sm">
                           ~{estimatedBets}
                         </div>
                       </div>
                     </div>
                     
-                    <div className="flex justify-between items-center text-xs pt-2 border-t border-[var(--app-card-border)]">
-                      <div className="flex gap-3">
+                    <div className="flex justify-between items-center text-xs pt-3 border-t border-cyber-purple/20">
+                      <div className="flex gap-4">
                         <div>
-                          <span className="text-green-400">YES: </span>
-                          <span className="text-[var(--app-foreground)]">
+                          <span className="text-green-400 font-medium">YES: </span>
+                          <span className="text-white font-semibold">
                             {formatUSDC(event.yesPool)}
                           </span>
                         </div>
                         <div>
-                          <span className="text-red-400">NO: </span>
-                          <span className="text-[var(--app-foreground)]">
+                          <span className="text-red-400 font-medium">NO: </span>
+                          <span className="text-white font-semibold">
                             {formatUSDC(event.noPool)}
                           </span>
                         </div>
                       </div>
-                      <span className="text-[var(--app-foreground-muted)]">
+                      <span className="text-cyber-teal/70 font-medium">
                         {getTimeRemaining(event.endTime)}
                       </span>
                     </div>
@@ -352,9 +368,9 @@ export function LiveMarketFeed() {
             )}
           </div>
           
-          <div className="mt-4 pt-3 border-t border-[var(--app-card-border)]">
-            <div className="flex items-center justify-center gap-2 text-xs text-[var(--app-foreground-muted)]">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <div className="mt-4 pt-3 border-t border-cyber-purple/20">
+            <div className="flex items-center justify-center gap-2 text-xs text-cyber-teal/70 font-medium">
+              <div className="w-2 h-2 bg-cyber-teal rounded-full animate-pulse shadow-cyber"></div>
               <p>
                 Live from Base Sepolia • {blockchainEvents.length} active event{blockchainEvents.length !== 1 ? 's' : ''}
               </p>
