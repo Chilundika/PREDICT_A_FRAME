@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "./DemoComponents";
 
 type UssdModalProps = {
@@ -16,13 +16,13 @@ type UssdSession = {
   userInput: string;
 };
 
-type UssdMenu = {
-  id: string;
-  title: string;
-  options: { key: string; label: string; action?: string }[];
-  isInput?: boolean;
-  inputPrompt?: string;
-};
+// type UssdMenu = {
+//   id: string;
+//   title: string;
+//   options: { key: string; label: string; action?: string }[];
+//   isInput?: boolean;
+//   inputPrompt?: string;
+// };
 
 export function UssdModal({ isOpen, onClose }: UssdModalProps) {
   const [session, setSession] = useState<UssdSession>({
@@ -39,138 +39,138 @@ export function UssdModal({ isOpen, onClose }: UssdModalProps) {
   const [displayText, setDisplayText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const ussdMenus: Record<string, UssdMenu> = {
-    main: {
-      id: "main",
-      title: "🔮 PredictAFrame USSD",
-      options: [
-        { key: "1", label: "View Markets", action: "markets" },
-        { key: "2", label: "My Predictions", action: "my_predictions" },
-        { key: "3", label: "Account Balance", action: "balance" },
-        { key: "4", label: "Place Prediction", action: "place_prediction" },
-        { key: "5", label: "Transaction History", action: "history" },
-        { key: "6", label: "Help & Support", action: "help" },
-        { key: "0", label: "Exit", action: "exit" },
-      ],
-    },
-    markets: {
-      id: "markets",
-      title: "📊 Active Markets",
-      options: [
-        { key: "1", label: "BTC Price > $100k by Dec 2024", action: "market_1" },
-        { key: "2", label: "ETH Price > $5k by Jan 2025", action: "market_2" },
-        { key: "3", label: "AI Token Launch Success", action: "market_3" },
-        { key: "4", label: "DeFi TVL > $200B", action: "market_4" },
-        { key: "#", label: "Back to Main Menu", action: "main" },
-        { key: "0", label: "Exit", action: "exit" },
-      ],
-    },
-    market_1: {
-      id: "market_1",
-      title: "🪙 BTC > $100k by Dec 2024",
-      options: [
-        { key: "1", label: "Predict YES (0.01 ETH)", action: "predict_yes_1" },
-        { key: "2", label: "Predict NO (0.01 ETH)", action: "predict_no_1" },
-        { key: "3", label: "View Details", action: "market_1_details" },
-        { key: "#", label: "Back to Markets", action: "markets" },
-        { key: "0", label: "Exit", action: "exit" },
-      ],
-    },
-    market_1_details: {
-      id: "market_1_details",
-      title: "📈 Market Details",
-      options: [
-        { key: "1", label: "Current Odds: YES 65% | NO 35%", action: "market_1" },
-        { key: "2", label: "Total Pool: 12.5 ETH", action: "market_1" },
-        { key: "3", label: "Participants: 247", action: "market_1" },
-        { key: "4", label: "Ends: Dec 31, 2024", action: "market_1" },
-        { key: "#", label: "Back to Market", action: "market_1" },
-        { key: "0", label: "Exit", action: "exit" },
-      ],
-    },
-    my_predictions: {
-      id: "my_predictions",
-      title: "🎯 My Predictions",
-      options: [
-        { key: "1", label: "BTC>$100k: YES (0.01 ETH)", action: "prediction_1" },
-        { key: "2", label: "ETH>$5k: NO (0.005 ETH)", action: "prediction_2" },
-        { key: "3", label: "View All (5 total)", action: "all_predictions" },
-        { key: "#", label: "Back to Main Menu", action: "main" },
-        { key: "0", label: "Exit", action: "exit" },
-      ],
-    },
-    balance: {
-      id: "balance",
-      title: "💰 Account Balance",
-      options: [
-        { key: "1", label: "Available: 0.15 ETH", action: "balance" },
-        { key: "2", label: "In Predictions: 0.025 ETH", action: "balance" },
-        { key: "3", label: "Total Value: 0.175 ETH", action: "balance" },
-        { key: "4", label: "Add Funds via M-Pesa", action: "add_funds" },
-        { key: "#", label: "Back to Main Menu", action: "main" },
-        { key: "0", label: "Exit", action: "exit" },
-      ],
-    },
-    place_prediction: {
-      id: "place_prediction",
-      title: "🎲 Place New Prediction",
-      options: [
-        { key: "1", label: "Quick Predict (0.01 ETH)", action: "quick_predict" },
-        { key: "2", label: "Custom Amount", action: "custom_amount" },
-        { key: "3", label: "Browse Markets", action: "markets" },
-        { key: "#", label: "Back to Main Menu", action: "main" },
-        { key: "0", label: "Exit", action: "exit" },
-      ],
-    },
-    custom_amount: {
-      id: "custom_amount",
-      title: "💵 Enter Amount (ETH)",
-      options: [],
-      isInput: true,
-      inputPrompt: "Enter amount (e.g., 0.05):",
-    },
-    help: {
-      id: "help",
-      title: "❓ Help & Support",
-      options: [
-        { key: "1", label: "How to Predict", action: "help_predict" },
-        { key: "2", label: "Payment Methods", action: "help_payment" },
-        { key: "3", label: "Contact Support", action: "help_contact" },
-        { key: "4", label: "USSD Codes List", action: "help_codes" },
-        { key: "#", label: "Back to Main Menu", action: "main" },
-        { key: "0", label: "Exit", action: "exit" },
-      ],
-    },
-    help_codes: {
-      id: "help_codes",
-      title: "📱 USSD Codes",
-      options: [
-        { key: "1", label: "*123*1# - Quick Markets", action: "help" },
-        { key: "2", label: "*123*2# - My Account", action: "help" },
-        { key: "3", label: "*123*3# - Place Bet", action: "help" },
-        { key: "4", label: "*123*0# - Main Menu", action: "help" },
-        { key: "#", label: "Back to Help", action: "help" },
-        { key: "0", label: "Exit", action: "exit" },
-      ],
-    },
-  };
+  // const ussdMenus: Record<string, UssdMenu> = {
+  //   main: {
+  //     id: "main",
+  //     title: "🔮 PredictAFrame USSD",
+  //     options: [
+  //       { key: "1", label: "View Markets", action: "markets" },
+  //       { key: "2", label: "My Predictions", action: "my_predictions" },
+  //       { key: "3", label: "Account Balance", action: "balance" },
+  //       { key: "4", label: "Place Prediction", action: "place_prediction" },
+  //       { key: "5", label: "Transaction History", action: "history" },
+  //       { key: "6", label: "Help & Support", action: "help" },
+  //       { key: "0", label: "Exit", action: "exit" },
+  //     ],
+  //   },
+  //   markets: {
+  //     id: "markets",
+  //     title: "📊 Active Markets",
+  //     options: [
+  //       { key: "1", label: "BTC Price > $100k by Dec 2024", action: "market_1" },
+  //       { key: "2", label: "ETH Price > $5k by Jan 2025", action: "market_2" },
+  //       { key: "3", label: "AI Token Launch Success", action: "market_3" },
+  //       { key: "4", label: "DeFi TVL > $200B", action: "market_4" },
+  //       { key: "#", label: "Back to Main Menu", action: "main" },
+  //       { key: "0", label: "Exit", action: "exit" },
+  //     ],
+  //   },
+  //   market_1: {
+  //     id: "market_1",
+  //     title: "🪙 BTC > $100k by Dec 2024",
+  //     options: [
+  //       { key: "1", label: "Predict YES (0.01 ETH)", action: "predict_yes_1" },
+  //       { key: "2", label: "Predict NO (0.01 ETH)", action: "predict_no_1" },
+  //       { key: "3", label: "View Details", action: "market_1_details" },
+  //       { key: "#", label: "Back to Markets", action: "markets" },
+  //       { key: "0", label: "Exit", action: "exit" },
+  //     ],
+  //   },
+  //   market_1_details: {
+  //     id: "market_1_details",
+  //     title: "📈 Market Details",
+  //     options: [
+  //       { key: "1", label: "Current Odds: YES 65% | NO 35%", action: "market_1" },
+  //       { key: "2", label: "Total Pool: 12.5 ETH", action: "market_1" },
+  //       { key: "3", label: "Participants: 247", action: "market_1" },
+  //       { key: "4", label: "Ends: Dec 31, 2024", action: "market_1" },
+  //       { key: "#", label: "Back to Market", action: "market_1" },
+  //       { key: "0", label: "Exit", action: "exit" },
+  //     ],
+  //   },
+  //   my_predictions: {
+  //     id: "my_predictions",
+  //     title: "🎯 My Predictions",
+  //     options: [
+  //       { key: "1", label: "BTC>$100k: YES (0.01 ETH)", action: "prediction_1" },
+  //       { key: "2", label: "ETH>$5k: NO (0.005 ETH)", action: "prediction_2" },
+  //       { key: "3", label: "View All (5 total)", action: "all_predictions" },
+  //       { key: "#", label: "Back to Main Menu", action: "main" },
+  //       { key: "0", label: "Exit", action: "exit" },
+  //     ],
+  //   },
+  //   balance: {
+  //     id: "balance",
+  //     title: "💰 Account Balance",
+  //     options: [
+  //       { key: "1", label: "Available: 0.15 ETH", action: "balance" },
+  //       { key: "2", label: "In Predictions: 0.025 ETH", action: "balance" },
+  //       { key: "3", label: "Total Value: 0.175 ETH", action: "balance" },
+  //       { key: "4", label: "Add Funds via M-Pesa", action: "add_funds" },
+  //       { key: "#", label: "Back to Main Menu", action: "main" },
+  //       { key: "0", label: "Exit", action: "exit" },
+  //     ],
+  //   },
+  //   place_prediction: {
+  //     id: "place_prediction",
+  //     title: "🎲 Place New Prediction",
+  //     options: [
+  //       { key: "1", label: "Quick Predict (0.01 ETH)", action: "quick_predict" },
+  //       { key: "2", label: "Custom Amount", action: "custom_amount" },
+  //       { key: "3", label: "Browse Markets", action: "markets" },
+  //       { key: "#", label: "Back to Main Menu", action: "main" },
+  //       { key: "0", label: "Exit", action: "exit" },
+  //     ],
+  //   },
+  //   custom_amount: {
+  //     id: "custom_amount",
+  //     title: "💵 Enter Amount (ETH)",
+  //     options: [],
+  //     isInput: true,
+  //     inputPrompt: "Enter amount (e.g., 0.05):",
+  //   },
+  //   help: {
+  //     id: "help",
+  //     title: "❓ Help & Support",
+  //     options: [
+  //       { key: "1", label: "How to Predict", action: "help_predict" },
+  //       { key: "2", label: "Payment Methods", action: "help_payment" },
+  //       { key: "3", label: "Contact Support", action: "help_contact" },
+  //       { key: "4", label: "USSD Codes List", action: "help_codes" },
+  //       { key: "#", label: "Back to Main Menu", action: "main" },
+  //       { key: "0", label: "Exit", action: "exit" },
+  //     ],
+  //   },
+  //   help_codes: {
+  //     id: "help_codes",
+  //     title: "📱 USSD Codes",
+  //     options: [
+  //       { key: "1", label: "*123*1# - Quick Markets", action: "help" },
+  //       { key: "2", label: "*123*2# - My Account", action: "help" },
+  //       { key: "3", label: "*123*3# - Place Bet", action: "help" },
+  //       { key: "4", label: "*123*0# - Main Menu", action: "help" },
+  //       { key: "#", label: "Back to Help", action: "help" },
+  //       { key: "0", label: "Exit", action: "exit" },
+  //     ],
+  //   },
+  // };
 
-  const getCurrentMenu = () => ussdMenus[session.currentMenu] || ussdMenus.main;
+  // const getCurrentMenu = () => ussdMenus[session.currentMenu] || ussdMenus.main;
 
-  const formatMenuDisplay = (menu: UssdMenu) => {
-    let display = `${menu.title}\n\n`;
-    
-    if (menu.isInput) {
-      display += `${menu.inputPrompt}\n\n`;
-      display += "# Back  0 Exit";
-    } else {
-      menu.options.forEach((option) => {
-        display += `${option.key}. ${option.label}\n`;
-      });
-    }
-    
-    return display;
-  };
+  // const formatMenuDisplay = (menu: UssdMenu) => {
+  //   let display = `${menu.title}\n\n`;
+  //   
+  //   if (menu.isInput) {
+  //     display += `${menu.inputPrompt}\n\n`;
+  //     display += "# Back  0 Exit";
+  //   } else {
+  //     menu.options.forEach((option) => {
+  //       display += `${option.key}. ${option.label}\n`;
+  //     });
+  //   }
+  //   
+  //   return display;
+  // };
 
   const handleUssdInput = async (input: string) => {
     await callUssdApi('navigate', {
@@ -180,62 +180,62 @@ export function UssdModal({ isOpen, onClose }: UssdModalProps) {
     });
   };
 
-  const processInputSubmission = (input: string) => {
-    const currentMenu = getCurrentMenu();
+  // const processInputSubmission = (input: string) => {
+  //   const currentMenu = getCurrentMenu();
+  //   
+  //   if (currentMenu.id === "custom_amount") {
+  //     // Validate amount and proceed to market selection
+  //     const amount = parseFloat(input);
+  //     if (amount > 0 && amount <= 0.15) {
+  //       setDisplayText(`Amount: ${amount} ETH confirmed.\nSelect market to predict on.`);
+  //       setTimeout(() => navigateToMenu("markets"), 2000);
+  //     } else {
+  //       setDisplayText("Invalid amount. Must be between 0.001 and 0.15 ETH.");
+  //       setTimeout(() => setDisplayText(formatMenuDisplay(currentMenu)), 2000);
+  //     }
+  //   }
+  // };
+
+  // const navigateToMenu = (menuId: string) => {
+  //   if (menuId === "exit") {
+  //     exitSession();
+  //     return;
+  //   }
+
+  //   setIsLoading(true);
     
-    if (currentMenu.id === "custom_amount") {
-      // Validate amount and proceed to market selection
-      const amount = parseFloat(input);
-      if (amount > 0 && amount <= 0.15) {
-        setDisplayText(`Amount: ${amount} ETH confirmed.\nSelect market to predict on.`);
-        setTimeout(() => navigateToMenu("markets"), 2000);
-      } else {
-        setDisplayText("Invalid amount. Must be between 0.001 and 0.15 ETH.");
-        setTimeout(() => setDisplayText(formatMenuDisplay(currentMenu)), 2000);
-      }
-    }
-  };
-
-  const navigateToMenu = (menuId: string) => {
-    if (menuId === "exit") {
-      exitSession();
-      return;
-    }
-
-    setIsLoading(true);
-    
-    // Simulate network delay
-    setTimeout(() => {
-      setSession(prev => ({
-        ...prev,
-        menuHistory: [...prev.menuHistory, prev.currentMenu],
-        currentMenu: menuId,
-      }));
+  //   // Simulate network delay
+  //   setTimeout(() => {
+  //     setSession(prev => ({
+  //       ...prev,
+  //       menuHistory: [...prev.menuHistory, prev.currentMenu],
+  //       currentMenu: menuId,
+  //     }));
       
-      const newMenu = ussdMenus[menuId];
-      if (newMenu) {
-        setDisplayText(formatMenuDisplay(newMenu));
-      }
+  //     const newMenu = ussdMenus[menuId];
+  //     if (newMenu) {
+  //       setDisplayText(formatMenuDisplay(newMenu));
+  //     }
       
-      setIsLoading(false);
-    }, 500);
-  };
+  //     setIsLoading(false);
+  //   }, 500);
+  // };
 
-  const navigateBack = () => {
-    if (session.menuHistory.length > 0) {
-      const previousMenu = session.menuHistory[session.menuHistory.length - 1];
-      setSession(prev => ({
-        ...prev,
-        currentMenu: previousMenu,
-        menuHistory: prev.menuHistory.slice(0, -1),
-      }));
-      
-      const menu = ussdMenus[previousMenu];
-      if (menu) {
-        setDisplayText(formatMenuDisplay(menu));
-      }
-    }
-  };
+  // const navigateBack = () => {
+  //   if (session.menuHistory.length > 0) {
+  //     const previousMenu = session.menuHistory[session.menuHistory.length - 1];
+  //     setSession(prev => ({
+  //       ...prev,
+  //       currentMenu: previousMenu,
+  //       menuHistory: prev.menuHistory.slice(0, -1),
+  //     }));
+  //     
+  //     const menu = ussdMenus[previousMenu];
+  //     if (menu) {
+  //       setDisplayText(formatMenuDisplay(menu));
+  //     }
+  //   }
+  // };
 
   const exitSession = () => {
     setDisplayText("Thank you for using PredictAFrame USSD!\nSession ended.");
@@ -253,7 +253,7 @@ export function UssdModal({ isOpen, onClose }: UssdModalProps) {
   };
 
   // USSD API Integration
-  const callUssdApi = async (action: string, data: any = {}) => {
+  const callUssdApi = async (action: string, data: Record<string, unknown> = {}) => {
     try {
       setIsLoading(true);
       

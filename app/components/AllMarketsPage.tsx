@@ -159,8 +159,9 @@ export function AllMarketsPage({ setActiveTab }: AllMarketsPageProps) {
       market.description.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const handleMarketClick = (_marketId: string) => {
+  const handleMarketClick = (marketId: string) => {
     // Navigate to prediction page for this specific market
+    console.log("Selected market:", marketId);
     setActiveTab("prediction");
   };
 

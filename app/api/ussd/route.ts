@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 
 // USSD Session Management
+interface Prediction {
+  date: string;
+  prediction: string;
+  amount: string;
+  marketId?: string;
+  txHash?: string;
+}
+
+interface Market {
+  id: string;
+  question: string;
+  yesOdds: number;
+  noOdds: number;
+  totalPool: string;
+  participants: number;
+  endDate: string;
+  minBet: string;
+}
+
 interface UssdSession {
   sessionId: string;
   phoneNumber: string;
@@ -9,7 +28,7 @@ interface UssdSession {
   menuHistory: string[];
   userWallet?: string;
   balance?: string;
-  predictions?: any[];
+  predictions?: Prediction[];
   lastActivity: number;
 }
 
@@ -19,7 +38,7 @@ const sessions = new Map<string, UssdSession>();
 // Mock market data
 const mockMarkets = [
   {
-    id: 1,
+    id: "1",
     question: "BTC Price > $100k by Dec 2024",
     yesOdds: 65,
     noOdds: 35,
@@ -29,7 +48,7 @@ const mockMarkets = [
     minBet: "0.001"
   },
   {
-    id: 2,
+    id: "2",
     question: "ETH Price > $5k by Jan 2025",
     yesOdds: 45,
     noOdds: 55,
@@ -39,7 +58,7 @@ const mockMarkets = [
     minBet: "0.001"
   },
   {
-    id: 3,
+    id: "3",
     question: "AI Token Launch Success",
     yesOdds: 72,
     noOdds: 28,
@@ -55,8 +74,8 @@ const mockUserData = {
   balance: "0.15",
   inPredictions: "0.025",
   predictions: [
-    { marketId: 1, prediction: "YES", amount: "0.01", date: "2024-11-01" },
-    { marketId: 2, prediction: "NO", amount: "0.005", date: "2024-11-02" }
+    { marketId: "1", prediction: "YES", amount: "0.01", date: "2024-11-01" },
+    { marketId: "2", prediction: "NO", amount: "0.005", date: "2024-11-02" }
   ]
 };
 
@@ -267,7 +286,7 @@ function handleGetMarkets(sessionId: string) {
   });
 }
 
-function handleGetMarketDetails(sessionId: string, marketId: number) {
+function handleGetMarketDetails(sessionId: string, marketId: string) {
   const session = sessions.get(sessionId);
   if (!session) {
     return NextResponse.json({ error: 'Session not found' }, { status: 404 });
@@ -284,7 +303,7 @@ function handleGetMarketDetails(sessionId: string, marketId: number) {
   });
 }
 
-function handlePlacePrediction(sessionId: string, marketId: number, prediction: string, amount: string) {
+function handlePlacePrediction(sessionId: string, marketId: string, prediction: string, amount: string) {
   const session = sessions.get(sessionId);
   if (!session) {
     return NextResponse.json({ error: 'Session not found' }, { status: 404 });
@@ -384,7 +403,7 @@ function getMarketsMenu() {
   return menu;
 }
 
-function getMarketDetailsMenu(market: any) {
+function getMarketDetailsMenu(market: Market) {
   return `
 🪙 ${market.question}
 
@@ -457,7 +476,7 @@ function getHistoryMenu(session: UssdSession) {
   if (!session.predictions || session.predictions.length === 0) {
     menu += "No transactions yet.\n\n";
   } else {
-    session.predictions.slice(-3).forEach((pred, index) => {
+    session.predictions.slice(-3).forEach((pred) => {
       menu += `${pred.date}: ${pred.prediction} ${pred.amount} ETH\n`;
     });
     menu += "\n";

@@ -304,7 +304,7 @@ type PredictionMarketProps = {
   setActiveTab: (tab: string) => void;
 };
 
-export function PredictionMarket({ setActiveTab: _setActiveTab }: PredictionMarketProps) {
+export function PredictionMarket({}: PredictionMarketProps) {
   const { address } = useAccount();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [betAmount, setBetAmount] = useState<number>(0.01); // Default 0.01 USDC
