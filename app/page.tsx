@@ -83,7 +83,15 @@ export default function App() {
       
       <div className="w-full px-4 py-3 relative z-10">
         <header className="flex justify-between items-center mb-4 h-12">
-          <div>
+          <div className="flex items-center space-x-3">
+            {/* Logo */}
+            <div className="flex items-center">
+              <img 
+                src="/logo.svg" 
+                alt="Predict A Frame Logo" 
+                className="w-8 h-8"
+              />
+            </div>
             <div className="flex items-center">
               <Wallet className="z-10">
                 <ConnectWallet>
