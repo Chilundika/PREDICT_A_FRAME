@@ -68,6 +68,3 @@ export const config = {
     '/api/protected/:path*',
   ],
 };
-
-// Ensure this runs in Edge Runtime
-export const runtime = 'edge';
