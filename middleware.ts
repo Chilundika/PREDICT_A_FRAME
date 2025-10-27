@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAddressAllowed } from '@/lib/config';
+
+// Edge Runtime compatible address validation
+function isValidEthereumAddress(address: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+function isAddressAllowed(address: string): boolean {
+  if (!isValidEthereumAddress(address)) {
+    return false;
+  }
+  
+  // Hardcoded allowed addresses for Edge Runtime compatibility
+  const allowedAddresses = ["0xA67323BE0685019F6B7D2dF308E17e3C00958b05"];
+  return allowedAddresses.includes(address.toLowerCase());
+}
 
 export function middleware(request: NextRequest) {
   // Only apply to API routes that need address validation
@@ -54,3 +68,6 @@ export const config = {
     '/api/protected/:path*',
   ],
 };
+
+// Ensure this runs in Edge Runtime
+export const runtime = 'edge';
